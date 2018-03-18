@@ -31,7 +31,7 @@ def read_bib(filename):
                     item = line.strip()
                     cite.append(item.split('\\bibitem[')[1].split(']')[0])
                     key.append(item.split('\\bibitem[')[1].split(']')[1].split('{')[1].split('}')[0])
-                    bib.append(item.split('\\bibitem[')[1].split(']')[1].split('}')[1].strip())
+                    bib.append(item.split('\\bibitem[')[1].split(']')[1][item.split('\\bibitem[')[1].split(']')[1].find('}') + 1:].strip())
             if '\\begin{thebibliography}' in line:
                 bib_tag = True
     df = pd.DataFrame({'cite': cite, 'key': key, 'bib': bib})
@@ -39,20 +39,122 @@ def read_bib(filename):
     return df
 
 
-def drop_duplicates(df):
+def drop_dup_key(df):
+    """Drop the duplicate keys
+    
+    Args:
+        df (DataFrame): data
+
+    Returns:
+        df (DataFrame): data
+    """
     df.drop_duplicates('key', inplace=True)
+    return df
 
 
-if __name__ == "__main__":
-    filename = 'proposal.tex'
-    df = read_bib(filename)
-    drop_duplicates(df)
+def change_dup_cite(df):
+    """Change the duplicate cites
+    
+    Ordered by the key and add a, b, c ... at the end of year in cite
 
+    
+    Args:
+        df (DataFrame): data
+
+    Returns:
+        df (DataFrame): data
+    """
     cite_dups = Counter(df[df.duplicated('cite') == True]['cite'].values).keys()
     for cite in cite_dups:
         df_dup = df[df['cite'] == cite]
         df_dup.sort_values('key', inplace=True)
-    
+        for i in range(len(df_dup)):
+            item = df_dup.iloc[i]
+            year_re = re.search('[1-3][0-9]{3}', item.cite) # Search for year
+            if hasattr(year_re, 'span'):
+                item['cite'] = item['cite'][: year_re.span()[1]] + chr(97 + i) + item['cite'][year_re.span()[1]:] # Add a, b, c 
+        df = df.append(df_dup)
 
+    df.drop_duplicates('cite', keep=False, inplace=True)
+    df.reset_index(inplace=True)
+    return df
+
+
+def read_info(df):
+    # Read the year
+    year = [int(item[:4]) for item in df.key.values]
+    df = df.assign(year=year)
+    # Read the first author
+    au1_f = list()
+    au1_l = list()
+    au2_f = list()
+    au2_l = list()
+    au3_f = list()
+    au3_l = list()
+    num = list()
+    for i in range(len(df)):
+        item = df.iloc[i]
+        bib = item.bib[:item.bib.find(item.key[:4])]
+        if 'et al.' not in item.cite and '\&' not in item.cite:
+            f = item.cite.split('(')[0].strip()
+            au1_f.append(f)
+            au1_l.append(bib[bib.find(f) + len(f) + 1:].split('.')[0].strip())
+            au2_f.append('')
+            au2_l.append('')
+            au3_f.append('')
+            au3_l.append('')
+            num.append(1)
+        elif '\&' in item.cite and 'et al.' not in item.cite:
+            f1 = item.cite.split('\&')[0].strip()
+            au1_f.append(f1)
+            au1_l.append(bib[bib.find(f1) + len(f1) + 1:].split('.')[0].strip())
+            f2 = item.cite.split('\&')[1].split('(')[0].strip()
+            au2_f.append(f2)
+            l2 = bib[bib.find(f1) + len(f1) + 1:]
+            au2_l.append(l2[l2.find(f2) + len(f2) + 1:].split('.')[0].strip())
+            # au2_l.append(l2)
+            au3_f.append('')
+            au3_l.append('')
+            num.append(2)
+        else:
+            f1 = item.cite.split('et al.')[0].strip()
+            au1_f.append(f1)
+            au1_l.append(bib[bib.find(f1) + len(f1) + 1:].split('.')[0].strip())
+            l2 = bib[bib.find(f1) + len(f1) + 1:]
+            f2 = l2.split(',')[1].strip()
+            au2_f.append(f2)
+            l3 = l2[l2.find(f2) + len(f2) + 1:]
+            au2_l.append(l3.split('.')[0].strip())
+            l4 = l3[l3.find(',') + 1:].strip()
+            if l4.strip().startswith('\\&'):
+                l5 = l4[l4.find('\\&') + 3:]
+                f3 = l5.split(',')[0].strip()
+                l6 = l5[l5.find(f3) + len(f3) + 1:]
+                au3_f.append(f3)
+                au3_l.append(l6.split('.')[0].strip())
+                num.append(3)
+            else:
+                f3 = l4.split(',')[0].strip()
+                au3_f.append(f3)
+                l5 = l4[l4.find(f3) + len(f3) + 1:]
+                au3_l.append(l5.split('.')[0].strip())
+                num.append(4)
+
+    
+    df = df.assign(au1_f=au1_f)
+    df = df.assign(au1_l=au1_l)
+    df = df.assign(au2_f=au2_f)
+    df = df.assign(au2_l=au2_l)
+    df = df.assign(au3_f=au3_f)
+    df = df.assign(au3_l=au3_l)
+    df = df.assign(num=num)
+    return df
+
+if __name__ == "__main__":
+    filename = 'proposal.tex'
+    df = read_bib(filename)
+    df = drop_dup_key(df)
+    df = read_info(df)
+    df = change_dup_cite(df)
 
 
