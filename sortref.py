@@ -27,19 +27,30 @@ def read_bib(filename):
         for line in f:
             if '\\end{thebibliography}' in line:
                 bib_tag = False
+                item = ''.join(bib_lines)
+                cite.append(
+                    item.split('\\bibitem[')[1].split(']')[0])
+                key.append(
+                    item.split('\\bibitem[')[1].split(']')[1].split(
+                        '{')[1].split('}')[0])
+                bib.append(
+                    item.split('\\bibitem[')[1].split(']')[1]
+                    [item.split('\\bibitem[')[1].split(']')[1].find(
+                        '}') + 1:].strip())
             if bib_tag == True:
                 if line.strip() != '':
                     if '\\bibitem[' in line:
                         if len(bib_lines) > 0:
                             item = ''.join(bib_lines)
-                            cite.append(item.split('\\bibitem[')[1].split(']')[0])
+                            cite.append(
+                                item.split('\\bibitem[')[1].split(']')[0])
                             key.append(
-                                item.split('\\bibitem[')[1].split(']')[1].split('{')[1]
-                                .split('}')[0])
+                                item.split('\\bibitem[')[1].split(']')[1].split(
+                                    '{')[1].split('}')[0])
                             bib.append(
-                                item.split('\\bibitem[')[1].split(']')[1][item.split(
-                                    '\\bibitem[')[1].split(']')[1].find('}') + 1:]
-                                .strip())
+                                item.split('\\bibitem[')[1].split(']')[1]
+                                [item.split('\\bibitem[')[1].split(']')[1].find(
+                                    '}') + 1:].strip())
                         bib_lines = [line.strip()]
                     else:
                         bib_lines.append(line.strip())
@@ -117,7 +128,7 @@ def read_bib(filename):
 
 def read_content(filename):
     """Read content from the file
-    
+
     Args:
         filename (string): file name
 
@@ -158,15 +169,13 @@ def change_dup_cite(df):
 
     Args:
         df (DataFrame): data
-
-    Returns:
-        df (DataFrame): data
     """
     cite_dups = Counter(df[df.duplicated('cite') == True]['cite'].values).keys()
     for cite in cite_dups:
         df_dup = df[df['cite'] == cite]
         df_dup.sort_values('key', inplace=True)
-        print('{0} duplicate cites {1} are found: {2}'.format(len(df_dup), cite, ', '.join(df_dup.key)))
+        print('ERROR: {0} duplicate cites {1} are found: {2}'.format(
+            len(df_dup), cite, ', '.join(df_dup.key)))
         for i in range(len(df_dup)):
             item = df_dup.iloc[i]
             year_re = re.search('[1-3][0-9]{3}', item.cite)  # Search for year
@@ -180,7 +189,7 @@ def change_dup_cite(df):
 
 def sort_key(df):
     """Sort the key
-    
+
     In the order of first author's first name, last name, ..., total num, year
 
     Args:
@@ -194,55 +203,76 @@ def sort_key(df):
 
 def remove_useless(df, content):
     """Remove the bibs don't appear in the content
-    
+
     Args:
         df (DataFrame): bib data
         content (list): content
-
     """
     content_join = "".join(content[0])
     useless = list()
     for i in range(len(df)):
         key = df.iloc[i].key
         if key not in content_join:
-            print('No citation of {0} is found!'.format(key))
+            print('WARNING: No citation of {0} is found!'.format(key))
             useless.append(df.index[i])
     for index in useless:
         df.drop(index, inplace=True)
     df.reset_index(inplace=True, drop=True)
 
 
-
-def write_tex(df, content, filename):
-    """Write sorted tex to new file
-    
-    Add suffix '_o' to the output filename 
+def find_missing(df, content):
+    """Find missing keys in the content
 
     Args:
         df (DataFrame): bib data
         content (list): content
     """
-    filename_o = '{0}_o.tex'.format(filename[: filename.find('.tex')])
+    content_join = "".join(content[0])
+    keys = list()
+    for item in re.findall('citep\{.*?\}', content_join):
+        keys += item[6:-1].split(',')
+    for item in re.findall('citet\{.*?\}', content_join):
+        keys += item[6:-1].split(',')
+    for item in re.findall('cite\{.*?\}', content_join):
+        keys += item[5:-1].split(',')
+    for key in keys:
+        if key.strip() not in df.key.values:
+            print('ERROR: {0} is not found in the bib!'.format(key))
+
+
+def write_tex(df, content, filename):
+    """Write sorted tex to new file
+
+    Add suffix '_o' to the output filename
+
+    Args:
+        df (DataFrame): bib data
+        content (list): content
+    """
+    filename_o = '{0}_o.tex'.format(filename[:filename.find('.tex')])
     with open(filename_o, 'w') as f:
         for line in content[0]:
             f.write(line)
         for i in range(len(df)):
             item = df.iloc[i]
-            f.write('\\bibitem[{0}]{{{1}}}{2}\n'.format(item.cite, item.key, item.bib))
+            f.write('\\bibitem[{0}]{{{1}}}{2}\n'.format(item.cite, item.key,
+                                                        item.bib))
         for line in content[1]:
             f.write(line)
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("filename", type=str, help="filename of tex file (ms.tex)")
+    parser.add_argument(
+        "filename", type=str, help="filename of tex file (ms.tex)")
     args = parser.parse_args()
     filename = args.filename
 
     df = read_bib(filename)
     content = read_content(filename)
     remove_useless(df, content)
+    find_missing(df, content)
     drop_dup_key(df)
     change_dup_cite(df)
     sort_key(df)
-    write_tex(df, content, filename)
+    # write_tex(df, content, filename)
