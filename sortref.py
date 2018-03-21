@@ -22,20 +22,26 @@ def read_bib(filename):
     bib = list()
     with open(filename) as f:
         bib_tag = False
+        bib_lines = list()
         for line in f:
             if '\\end{thebibliography}' in line:
                 bib_tag = False
             if bib_tag == True:
                 if line.strip() != '':
-                    item = line.strip()
-                    cite.append(item.split('\\bibitem[')[1].split(']')[0])
-                    key.append(
-                        item.split('\\bibitem[')[1].split(']')[1].split('{')[1]
-                        .split('}')[0])
-                    bib.append(
-                        item.split('\\bibitem[')[1].split(']')[1][item.split(
-                            '\\bibitem[')[1].split(']')[1].find('}') + 1:]
-                        .strip())
+                    if '\\bibitem[' in line:
+                        if len(bib_lines) > 0:
+                            item = ''.join(bib_lines)
+                            cite.append(item.split('\\bibitem[')[1].split(']')[0])
+                            key.append(
+                                item.split('\\bibitem[')[1].split(']')[1].split('{')[1]
+                                .split('}')[0])
+                            bib.append(
+                                item.split('\\bibitem[')[1].split(']')[1][item.split(
+                                    '\\bibitem[')[1].split(']')[1].find('}') + 1:]
+                                .strip())
+                        bib_lines = [line.strip()]
+                    else:
+                        bib_lines.append(line.strip())
             if '\\begin{thebibliography}' in line:
                 bib_tag = True
     df = pd.DataFrame({'cite': cite, 'key': key, 'bib': bib})
@@ -227,8 +233,8 @@ def write_tex(df, content, filename):
 
 
 if __name__ == "__main__":
-    # filename = 'ms.tex'
-    filename = 'proposal.tex'
+    filename = 'ms.tex'
+    # filename = 'proposal.tex'
     df = read_bib(filename)
     content = read_content(filename)
     remove_useless(df, content)
