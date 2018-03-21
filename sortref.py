@@ -149,7 +149,6 @@ def change_dup_cite(df):
 
     Ordered by the key and add a, b, c ... at the end of year in cite
 
-
     Args:
         df (DataFrame): data
 
@@ -160,15 +159,14 @@ def change_dup_cite(df):
     for cite in cite_dups:
         df_dup = df[df['cite'] == cite]
         df_dup.sort_values('key', inplace=True)
+        print('{0} duplicate cites {1} are found: {2}'.format(len(df_dup), cite, ', '.join(df_dup.key)))
         for i in range(len(df_dup)):
-            #TODO add warning
             item = df_dup.iloc[i]
             year_re = re.search('[1-3][0-9]{3}', item.cite)  # Search for year
             if hasattr(year_re, 'span'):
-                df_dup.at[df_dup.index[i], 'cite'] = item['cite'][:year_re.span(
+                df.at[df_dup.index[i], 'cite'] = item['cite'][:year_re.span(
                 )[1]] + chr(97 + i) + item['cite'][year_re.span()
                                                    [1]:]  # Add a, b, c
-        df = df.append(df_dup)
     df.drop_duplicates('cite', keep=False, inplace=True)
     df.reset_index(inplace=True, drop=True)
 
