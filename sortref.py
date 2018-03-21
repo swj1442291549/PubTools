@@ -275,4 +275,4 @@ if __name__ == "__main__":
     drop_dup_key(df)
     change_dup_cite(df)
     sort_key(df)
-    # write_tex(df, content, filename)
+    write_tex(df, content, filename)
