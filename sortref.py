@@ -1,6 +1,7 @@
 import re
 import pandas as pd
 from collections import Counter
+import argparse
 
 
 def read_bib(filename):
@@ -233,8 +234,11 @@ def write_tex(df, content, filename):
 
 
 if __name__ == "__main__":
-    filename = 'ms.tex'
-    # filename = 'proposal.tex'
+    parser = argparse.ArgumentParser()
+    parser.add_argument("filename", type=str, help="filename of tex file (ms.tex)")
+    args = parser.parse_args()
+    filename = args.filename
+
     df = read_bib(filename)
     content = read_content(filename)
     remove_useless(df, content)
