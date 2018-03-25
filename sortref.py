@@ -2,6 +2,7 @@ import re
 import pandas as pd
 from collections import Counter
 import argparse
+import adsapi
 
 
 def read_bib(filename):
@@ -10,7 +11,6 @@ def read_bib(filename):
     separate the bibitem into cite, key, bib
 
     "\bibitem[cite]{key} bib"
-
 
     Args:
         filename (string): file name
@@ -21,6 +21,7 @@ def read_bib(filename):
     cite = list()
     key = list()
     bib = list()
+    bib_items = list()
     with open(filename) as f:
         bib_tag = False
         bib_lines = list()
@@ -28,102 +29,84 @@ def read_bib(filename):
             if '\\end{thebibliography}' in line:
                 bib_tag = False
                 item = ''.join(bib_lines)
-                cite.append(
-                    item.split('\\bibitem[')[1].split(']')[0])
-                key.append(
-                    item.split('\\bibitem[')[1].split(']')[1].split(
-                        '{')[1].split('}')[0])
-                bib.append(
-                    item.split('\\bibitem[')[1].split(']')[1]
-                    [item.split('\\bibitem[')[1].split(']')[1].find(
-                        '}') + 1:].strip())
+                bib_items.append(item)
             if bib_tag == True:
                 if line.strip() != '':
                     if '\\bibitem[' in line:
                         if len(bib_lines) > 0:
-                            item = ''.join(bib_lines)
-                            cite.append(
-                                item.split('\\bibitem[')[1].split(']')[0])
-                            key.append(
-                                item.split('\\bibitem[')[1].split(']')[1].split(
-                                    '{')[1].split('}')[0])
-                            bib.append(
-                                item.split('\\bibitem[')[1].split(']')[1]
-                                [item.split('\\bibitem[')[1].split(']')[1].find(
-                                    '}') + 1:].strip())
+                            bib_items.append(''.join(bib_lines))
                         bib_lines = [line.strip()]
                     else:
                         bib_lines.append(line.strip())
             if '\\begin{thebibliography}' in line:
                 bib_tag = True
-    df = pd.DataFrame({'cite': cite, 'key': key, 'bib': bib})
+    info_list = list()
     pd.options.mode.chained_assignment = None
-
-    # Read the year
-    year = [int(item[:4]) for item in df.key.values]
-    df = df.assign(year=year)
-    # Read the first author
-    au1_f = list()
-    au1_l = list()
-    au2_f = list()
-    au2_l = list()
-    au3_f = list()
-    au3_l = list()
-    num = list()
-    for i in range(len(df)):
-        item = df.iloc[i]
-        bib = item.bib[:item.bib.find(item.key[:4])]
-        if 'et al.' not in item.cite and '\&' not in item.cite:
-            f = item.cite.split('(')[0].strip()
-            au1_f.append(f)
-            au1_l.append(bib[bib.find(f) + len(f) + 1:].split('.')[0].strip())
-            au2_f.append('')
-            au2_l.append('')
-            au3_f.append('')
-            au3_l.append('')
-            num.append(1)
-        elif '\&' in item.cite and 'et al.' not in item.cite:
-            f1 = item.cite.split('\&')[0].strip()
-            au1_f.append(f1)
-            au1_l.append(bib[bib.find(f1) + len(f1) + 1:].split('.')[0].strip())
-            f2 = item.cite.split('\&')[1].split('(')[0].strip()
-            au2_f.append(f2)
-            l2 = bib[bib.find(f1) + len(f1) + 1:]
-            au2_l.append(l2[l2.find(f2) + len(f2) + 1:].split('.')[0].strip())
-            au3_f.append('')
-            au3_l.append('')
-            num.append(2)
-        else:
-            f1 = item.cite.split('et al.')[0].strip()
-            au1_f.append(f1)
-            au1_l.append(bib[bib.find(f1) + len(f1) + 1:].split('.')[0].strip())
-            l2 = bib[bib.find(f1) + len(f1) + 1:]
-            f2 = l2.split(',')[1].strip()
-            au2_f.append(f2)
-            l3 = l2[l2.find(f2) + len(f2) + 1:]
-            au2_l.append(l3.split('.')[0].strip())
-            l4 = l3[l3.find(',') + 1:].strip()
-            if l4.strip().startswith('\\&'):
-                l5 = l4[l4.find('\\&') + 3:]
-                f3 = l5.split(',')[0].strip()
-                l6 = l5[l5.find(f3) + len(f3) + 1:]
-                au3_f.append(f3)
-                au3_l.append(l6.split('.')[0].strip())
-                num.append(3)
-            else:
-                f3 = l4.split(',')[0].strip()
-                au3_f.append(f3)
-                l5 = l4[l4.find(f3) + len(f3) + 1:]
-                au3_l.append(l5.split('.')[0].strip())
-                num.append(4)
-    df = df.assign(au1_f=au1_f)
-    df = df.assign(au1_l=au1_l)
-    df = df.assign(au2_f=au2_f)
-    df = df.assign(au2_l=au2_l)
-    df = df.assign(au3_f=au3_f)
-    df = df.assign(au3_l=au3_l)
-    df = df.assign(num=num)
+    for bib_item in bib_items:
+        info_list.append(extract_info(bib_item))
+    df = pd.DataFrame(info_list)
     return df
+
+def extract_info(bib_item):
+    """Extract info from bib_item
+    
+    Args:
+        bib_item (string): bib item
+
+    Returns:
+        info (dict): info dictionary
+    """
+    info = dict()
+    info['cite'] = bib_item.split('\\bibitem[')[1].split(']')[0]
+    info['key'] = bib_item.split('\\bibitem[')[1].split(']')[1].split('{')[1].split('}')[0]
+    info['bib'] = bib_item.split('\\bibitem[')[1].split(']')[1][bib_item.split('\\bibitem[')[1].split(']')[1].find('}') + 1:].strip()
+    item = pd.Series(info)
+    info['year'] = item.key[:4]
+    bib = item.bib[:item.bib.find(info['year'])]
+    if 'et al.' not in item.cite and '\&' not in item.cite:
+        f = item.cite.split('(')[0].strip()
+        info['au1_f'] = f
+        info['au1_l'] = bib[bib.find(f) + len(f) + 1:].split('.')[0].strip()
+        info['au2_f'] = ''
+        info['au2_l'] = ''
+        info['au3_f'] = ''
+        info['au3_l'] = ''
+        info['num'] = 1
+    elif '\&' in item.cite and 'et al.' not in item.cite:
+        f1 = item.cite.split('\&')[0].strip()
+        info['au1_f'] = f1
+        info['au1_l'] = bib[bib.find(f1) + len(f1) + 1:].split('.')[0].strip()
+        f2 = item.cite.split('\&')[1].split('(')[0].strip()
+        l2 = bib[bib.find(f1) + len(f1) + 1:]
+        info['au2_f'] = f2
+        info['au2_l'] = l2[l2.find(f2) + len(f2) + 1:].split('.')[0].strip()
+        info['au3_f'] = ''
+        info['au3_l'] = ''
+        info['num'] = 2
+    else:
+        f1 = item.cite.split('et al.')[0].strip()
+        info['au1_f'] = f1
+        info['au1_l'] = bib[bib.find(f1) + len(f1) + 1:].split('.')[0].strip()
+        l2 = bib[bib.find(f1) + len(f1) + 1:]
+        f2 = l2.split(',')[1].strip()
+        info['au2_f'] = f2
+        l3 = l2[l2.find(f2) + len(f2) + 1:]
+        info['au2_l'] = l3.split('.')[0].strip()
+        l4 = l3[l3.find(',') + 1:].strip()
+        if l4.strip().startswith('\\&'):
+            l5 = l4[l4.find('\\&') + 3:]
+            f3 = l5.split(',')[0].strip()
+            l6 = l5[l5.find(f3) + len(f3) + 1:]
+            info['au3_f'] = f3
+            info['au3_l'] = l6.split('.')[0].strip()
+            info['num'] = 3
+        else:
+            f3 = l4.split(',')[0].strip()
+            info['au3_f'] = f3
+            l5 = l4[l4.find(f3) + len(f3) + 1:]
+            info['au3_l'] = l5.split('.')[0].strip()
+            info['num'] = 4
+    return info
 
 
 def read_content(filename):
@@ -235,9 +218,13 @@ def find_missing(df, content):
         keys += item[6:-1].split(',')
     for item in re.findall('cite\{.*?\}', content_join):
         keys += item[5:-1].split(',')
+    missing_key = list()
     for key in keys:
         if key.strip() not in df.key.values:
             print('ERROR: {0} is not found in the bib!'.format(key))
+            missing_key.append(key)
+    # missing_bibs = adsapi.export_aastex(missing_key)
+
 
 
 def write_tex(df, content, filename):
