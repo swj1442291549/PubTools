@@ -47,9 +47,10 @@ def read_bib(filename):
     df = pd.DataFrame(info_list)
     return df
 
+
 def extract_info(bib_item):
     """Extract info from bib_item
-    
+
     Args:
         bib_item (string): bib item
 
@@ -58,8 +59,10 @@ def extract_info(bib_item):
     """
     info = dict()
     info['cite'] = bib_item.split('\\bibitem[')[1].split(']')[0]
-    info['key'] = bib_item.split('\\bibitem[')[1].split(']')[1].split('{')[1].split('}')[0]
-    info['bib'] = bib_item.split('\\bibitem[')[1].split(']')[1][bib_item.split('\\bibitem[')[1].split(']')[1].find('}') + 1:].strip()
+    info['key'] = bib_item.split('\\bibitem[')[1].split(']')[1].split('{')[
+        1].split('}')[0]
+    info['bib'] = bib_item.split('\\bibitem[')[1].split(']')[1][
+        bib_item.split('\\bibitem[')[1].split(']')[1].find('}') + 1:].strip()
     item = pd.Series(info)
     info['year'] = item.key[:4]
     bib = item.bib[:item.bib.find(info['year'])]
@@ -223,8 +226,9 @@ def find_missing(df, content):
         if key.strip() not in df.key.values:
             print('ERROR: {0} is not found in the bib!'.format(key))
             missing_key.append(key)
-    # missing_bibs = adsapi.export_aastex(missing_key)
-
+    missing_bibs = adsapi.export_aastex(missing_key)
+    for bib_item in missing_bibs:
+        df.loc[len(df)] = extract_info(bib_item)
 
 
 def write_tex(df, content, filename):
