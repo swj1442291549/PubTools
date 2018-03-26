@@ -169,6 +169,11 @@ def change_dup_cite(df):
                 df.at[df_dup.index[i], 'cite'] = item['cite'][:year_re.span(
                 )[1]] + chr(97 + i) + item['cite'][year_re.span()
                                                    [1]:]  # Add a, b, c
+            year_re = re.search('[1-3][0-9]{3}', item.bib)
+            if hasattr(year_re, 'span'):
+                df.at[df_dup.index[i], 'bib'] = item['bib'][:year_re.span(
+                )[1]] + chr(97 + i) + item['bib'][year_re.span()
+                                                   [1]:]
     df.drop_duplicates('cite', keep=False, inplace=True)
     df.reset_index(inplace=True, drop=True)
 
@@ -266,4 +271,4 @@ if __name__ == "__main__":
     drop_dup_key(df)
     change_dup_cite(df)
     sort_key(df)
-    write_tex(df, content, filename)
+    # write_tex(df, content, filename)
