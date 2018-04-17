@@ -61,8 +61,12 @@ def extract_info(bib_item):
     info['cite'] = bib_item.split('\\bibitem[')[1].split(']')[0]
     info['key'] = bib_item.split('\\bibitem[')[1].split(']')[1].split('{')[
         1].split('}')[0]
-    info['bib'] = bib_item.split('\\bibitem[')[1].split(']')[1][
+    bib = bib_item.split('\\bibitem[')[1].split(']')[1][
         bib_item.split('\\bibitem[')[1].split(']')[1].find('}') + 1:].strip()
+    if bib[-1] == '.':
+        info['bib'] = bib[:-1]
+    else:
+        info['bib'] = bib
     item = pd.Series(info)
     info['year'] = item.key[:4]
     bib = item.bib[:item.bib.find(info['year'])]
