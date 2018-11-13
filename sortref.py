@@ -238,7 +238,7 @@ def find_missing(df, content):
     for key in keys:
         if key.strip() not in df.key.values:
             print('WARNING: {0} is not found in the bib!'.format(key.strip()))
-            missing_key.append(key)
+            missing_key.append(key.strip())
     missing_bibs = adsapi.export_aastex(missing_key)
     for bib_item in missing_bibs:
         df.loc[len(df)] = extract_info(bib_item)
