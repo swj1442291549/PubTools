@@ -29,7 +29,8 @@ def read_bib(filename):
             if '\\end{thebibliography}' in line:
                 bib_tag = False
                 item = ''.join(bib_lines)
-                bib_items.append(item)
+                if item != '':
+                    bib_items.append(item)
             if bib_tag == True:
                 if line.strip() != '':
                     if '\\bibitem[' in line:
@@ -42,9 +43,12 @@ def read_bib(filename):
                 bib_tag = True
     info_list = list()
     pd.options.mode.chained_assignment = None
-    for bib_item in bib_items:
-        info_list.append(extract_info(bib_item))
-    df = pd.DataFrame(info_list)
+    if len(bib_items) > 0:
+        for bib_item in bib_items:
+            info_list.append(extract_info(bib_item))
+        df = pd.DataFrame(info_list)
+    else:
+        df = pd.DataFrame(columns=['au1_f', 'au1_l', 'au2_f', 'au2_l', 'au3_f', 'au3_l', 'bib', 'cite', 'key', 'num', 'year'])
     return df
 
 
@@ -81,6 +85,8 @@ def extract_info(bib_item):
         info['num'] = 1
     elif '\&' in item.cite and 'et al.' not in item.cite:
         f1 = item.cite.split('\&')[0].strip()
+        if f1[-1] == ',':
+            f1 = f1[:-1]
         info['au1_f'] = f1.title()
         info['au1_l'] = bib[bib.find(f1) + len(f1) + 1:].split('.')[0].strip()
         f2 = item.cite.split('\&')[1].split('(')[0].strip()
@@ -163,7 +169,9 @@ def change_dup_cite(df):
     cite_dups = Counter(df[df.duplicated('cite') == True]['cite'].values).keys()
     for cite in cite_dups:
         df_dup = df[df['cite'] == cite]
-        df_dup.sort_values('key', inplace=True)
+        df_dup.sort_values(
+            ['au1_f', 'au1_l', 'au2_f', 'au2_l', 'au3_f', 'au3_l', 'num', 'year'],
+            inplace=True)
         print('ERROR: {0} duplicate cites {1} are found: {2}'.format(
             len(df_dup), cite, ', '.join(df_dup.key)))
         for i in range(len(df_dup)):
@@ -229,7 +237,7 @@ def find_missing(df, content):
     missing_key = list()
     for key in keys:
         if key.strip() not in df.key.values:
-            print('ERROR: {0} is not found in the bib!'.format(key))
+            print('WARNING: {0} is not found in the bib!'.format(key.strip()))
             missing_key.append(key)
     missing_bibs = adsapi.export_aastex(missing_key)
     for bib_item in missing_bibs:
