@@ -264,6 +264,11 @@ def write_tex(df, content, filename):
         for line in content[1]:
             f.write(line)
 
+def change_two_author_cite(df):
+    df_sel = df[df.num == 2]
+    for i in range(len(df_sel)):
+        item = df_sel.iloc[i]
+        df.loc[item.name, 'cite'] = '{0} \& {1}({2})'.format(item.au1_f, item.au2_f, item.year)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -276,6 +281,7 @@ if __name__ == "__main__":
     content = read_content(filename)
     remove_useless(df, content)
     find_missing(df, content)
+    change_two_author_cite(df)
     drop_dup_key(df)
     change_dup_cite(df)
     sort_key(df)
