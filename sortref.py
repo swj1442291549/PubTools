@@ -233,7 +233,7 @@ def find_missing(df, content):
     content_join = "".join(content[0])
     keys = list()
     for item in re.findall('citep?t?[\[\S*\]]*\{.*?\}', content_join):
-        keys += item[item.find('{') + 1: -1].split(',')
+        keys += item[item.rfind('{') + 1: -1].split(',')
     missing_key = list()
     for key in keys:
         if key.strip() not in df.key.values:
