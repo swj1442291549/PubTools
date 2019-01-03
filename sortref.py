@@ -270,6 +270,14 @@ def change_two_author_cite(df):
         item = df_sel.iloc[i]
         df.loc[item.name, 'cite'] = '{0} \& {1}({2})'.format(item.au1_f, item.au2_f, item.year)
 
+def check_arxiv(df):
+    arxiv_list = list()
+    for i in range(len(df)):
+        if 'arXiv' in df.iloc[i]['key']:
+            arxiv_list.append(df.iloc[i]['key'])
+    print('WARNING: {0} arXiv citations in bib: {1}'.format(len(arxiv_list), ' '.join(arxiv_list)))
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -281,6 +289,7 @@ if __name__ == "__main__":
     content = read_content(filename)
     remove_useless(df, content)
     find_missing(df, content)
+    check_arxiv(df)
     change_two_author_cite(df)
     drop_dup_key(df)
     change_dup_cite(df)
