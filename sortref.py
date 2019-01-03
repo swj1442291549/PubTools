@@ -172,7 +172,7 @@ def change_dup_cite(df):
         df_dup.sort_values(
             ['au1_f', 'au1_l', 'au2_f', 'au2_l', 'au3_f', 'au3_l', 'num', 'year'],
             inplace=True)
-        print('ERROR: {0} duplicate cites {1} are found: {2}'.format(
+        print('{0} duplicate cites {1} are found: {2}'.format(
             len(df_dup), cite, ', '.join(df_dup.key)))
         for i in range(len(df_dup)):
             item = df_dup.iloc[i]
@@ -216,7 +216,7 @@ def remove_useless(df, content):
     for i in range(len(df)):
         key = df.iloc[i].key
         if key not in content_join:
-            print('WARNING: No citation of {0} is found!'.format(key))
+            print('No citation of {0} is found!'.format(key))
             useless.append(df.index[i])
     for index in useless:
         df.drop(index, inplace=True)
@@ -237,7 +237,7 @@ def find_missing(df, content):
     missing_key = list()
     for key in keys:
         if key.strip() not in df.key.values:
-            print('WARNING: {0} is not found in the bib!'.format(key.strip()))
+            print('{0} is not found in the bib!'.format(key.strip()))
             missing_key.append(key.strip())
     missing_bibs = adsapi.export_aastex(missing_key)
     for bib_item in missing_bibs:
@@ -275,7 +275,7 @@ def check_arxiv(df):
     for i in range(len(df)):
         if 'arXiv' in df.iloc[i]['key']:
             arxiv_list.append(df.iloc[i]['key'])
-    print('WARNING: {0} arXiv citations in bib: {1}'.format(len(arxiv_list), ' '.join(arxiv_list)))
+    print('{0} arXiv citations in bib: {1}'.format(len(arxiv_list), ' '.join(arxiv_list)))
 
 
 if __name__ == "__main__":
