@@ -1,7 +1,10 @@
 import re
-import pandas as pd
-from collections import Counter
 import argparse
+
+from collections import Counter
+
+import pandas as pd
+
 import adsapi
 
 
@@ -275,7 +278,8 @@ def check_arxiv(df):
     for i in range(len(df)):
         if 'arXiv' in df.iloc[i]['key']:
             arxiv_list.append(df.iloc[i]['key'])
-    print('{0} arXiv citations in bib: {1}'.format(len(arxiv_list), ' '.join(arxiv_list)))
+    if len(arxiv_list) > 0:
+        print('{0} arXiv citations in bib: {1}'.format(len(arxiv_list), ' '.join(arxiv_list)))
 
 
 if __name__ == "__main__":
