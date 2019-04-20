@@ -18,7 +18,7 @@ def export_aastex(bibcodes):
         try:
             export_response = q.execute()
         except:
-            print('{0} is not in ADS library!')
+            print('{0} is not in ADS library!'.format(bibcodes))
         else:
             bibs = list()
             for bib in export_response.split('\n'):
