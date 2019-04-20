@@ -15,11 +15,15 @@ def export_aastex(bibcodes):
         return []
     else:
         q = ads.ExportQuery(bibcodes, format='aastex')
-        export_response = q.execute()
-        bibs = list()
-        for bib in export_response.split('\n'):
-            if len(bib) > 0:
-                bibs.append(bib)
-        return bibs
+        try:
+            export_response = q.execute()
+        except:
+            print('{0} is not in ADS library!')
+        else:
+            bibs = list()
+            for bib in export_response.split('\n'):
+                if len(bib) > 0:
+                    bibs.append(bib)
+            return bibs
 
 
