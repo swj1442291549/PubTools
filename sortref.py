@@ -51,7 +51,10 @@ def read_bib(filename):
             info_list.append(extract_info(bib_item))
         df = pd.DataFrame(info_list)
     else:
-        df = pd.DataFrame(columns=['au1_f', 'au1_l', 'au2_f', 'au2_l', 'au3_f', 'au3_l', 'bib', 'cite', 'key', 'num', 'year'])
+        df = pd.DataFrame(columns=[
+            'au1_f', 'au1_l', 'au2_f', 'au2_l', 'au3_f', 'au3_l', 'bib',
+            'cite', 'key', 'num', 'year'
+        ])
     return df
 
 
@@ -66,10 +69,11 @@ def extract_info(bib_item):
     """
     info = dict()
     info['cite'] = bib_item.split('\\bibitem[')[1].split(']')[0]
-    info['key'] = bib_item.split('\\bibitem[')[1].split(']')[1].split('{')[
-        1].split('}')[0]
-    bib = bib_item.split('\\bibitem[')[1].split(']')[1][
-        bib_item.split('\\bibitem[')[1].split(']')[1].find('}') + 1:].strip()
+    info['key'] = bib_item.split('\\bibitem[')[1].split(']')[1].split(
+        '{')[1].split('}')[0]
+    bib = bib_item.split('\\bibitem[')[1].split(
+        ']')[1][bib_item.split('\\bibitem[')[1].split(']')[1].find('}') +
+                1:].strip()
     if bib[-1] == '.':
         info['bib'] = bib[:-1]
     else:
@@ -169,12 +173,14 @@ def change_dup_cite(df):
     Args:
         df (DataFrame): data
     """
-    cite_dups = Counter(df[df.duplicated('cite') == True]['cite'].values).keys()
+    cite_dups = Counter(
+        df[df.duplicated('cite') == True]['cite'].values).keys()
     for cite in cite_dups:
         df_dup = df[df['cite'] == cite]
-        df_dup.sort_values(
-            ['au1_f', 'au1_l', 'au2_f', 'au2_l', 'au3_f', 'au3_l', 'num', 'year'],
-            inplace=True)
+        df_dup.sort_values([
+            'au1_f', 'au1_l', 'au2_f', 'au2_l', 'au3_f', 'au3_l', 'num', 'year'
+        ],
+                           inplace=True)
         print('{0} duplicate cites {1} are found: {2}'.format(
             len(df_dup), cite, ', '.join(df_dup.key)))
         for i in range(len(df_dup)):
@@ -187,8 +193,7 @@ def change_dup_cite(df):
             year_re = re.search('[1-3][0-9]{3}', item.bib)
             if hasattr(year_re, 'span'):
                 df.at[df_dup.index[i], 'bib'] = item['bib'][:year_re.span(
-                )[1]] + chr(97 + i) + item['bib'][year_re.span()
-                                                   [1]:]
+                )[1]] + chr(97 + i) + item['bib'][year_re.span()[1]:]
     df.drop_duplicates('cite', keep=False, inplace=True)
     df.reset_index(inplace=True, drop=True)
 
@@ -214,7 +219,7 @@ def remove_useless(df, content):
         df (DataFrame): bib data
         content (list): content
     """
-    content_join = "".join(content[0])
+    content_join = "".join([line.strip() for line in content[0]])
     useless = list()
     for i in range(len(df)):
         key = df.iloc[i].key
@@ -233,10 +238,19 @@ def find_missing(df, content):
         df (DataFrame): bib data
         content (list): content
     """
-    content_join = "".join(content[0])
+    content_join = "".join([line.strip() for line in content[0]])
     keys = list()
-    for item in re.findall('citep?t?[\[\S*\]]*\{.*?\}', content_join):
-        keys += item[item.rfind('{') + 1: -1].split(',')
+    for item in re.findall('(?<=\{)[^\{\}]*(?=\})', content_join):
+        if len(item) > 19:
+            item_split = item.split(',')
+            for i in range(len(item_split)):
+                key = item_split[i].strip()
+                if is_key(key) and key not in keys:
+                    keys.append(key)
+        else:
+            key = item.strip()
+            if is_key(key) and key not in keys:
+                keys.append(key)
     missing_key = list()
     for key in keys:
         if key.strip() not in df.key.values:
@@ -245,6 +259,17 @@ def find_missing(df, content):
     missing_bibs = adsapi.export_aastex(missing_key)
     for bib_item in missing_bibs:
         df.loc[len(df)] = extract_info(bib_item)
+
+
+def is_key(key):
+    key = key.strip()
+    if len(key) != 19:
+        return False
+    if not key[:4].isdigit():
+        return False
+    if not key[:-1].isupper():
+        return False
+    return True
 
 
 def write_tex(df, content, filename):
@@ -262,16 +287,19 @@ def write_tex(df, content, filename):
             f.write(line)
         for i in range(len(df)):
             item = df.iloc[i]
-            f.write('\\bibitem[{0}]{{{1}}}{2}\n'.format(item.cite, item.key,
-                                                        item.bib))
+            f.write('\\bibitem[{0}]{{{1}}}{2}\n'.format(
+                item.cite, item.key, item.bib))
         for line in content[1]:
             f.write(line)
+
 
 def change_two_author_cite(df):
     df_sel = df[df.num == 2]
     for i in range(len(df_sel)):
         item = df_sel.iloc[i]
-        df.loc[item.name, 'cite'] = '{0} \& {1}({2})'.format(item.au1_f, item.au2_f, item.year)
+        df.loc[item.name, 'cite'] = '{0} \& {1}({2})'.format(
+            item.au1_f, item.au2_f, item.year)
+
 
 def check_arxiv(df):
     arxiv_list = list()
@@ -279,7 +307,8 @@ def check_arxiv(df):
         if 'arXiv' in df.iloc[i]['key']:
             arxiv_list.append(df.iloc[i]['key'])
     if len(arxiv_list) > 0:
-        print('{0} arXiv citations in bib: {1}'.format(len(arxiv_list), ' '.join(arxiv_list)))
+        print('{0} arXiv citations in bib: {1}'.format(
+            len(arxiv_list), ' '.join(arxiv_list)))
 
 
 if __name__ == "__main__":
