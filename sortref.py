@@ -83,7 +83,7 @@ def extract_info(bib_item):
     bib = item.bib[:item.bib.find(info['year'])]
     if 'et al.' not in item.cite and '\&' not in item.cite:
         f = item.cite.split('(')[0].strip()
-        info['au1_f'] = f.title()
+        info['au1_f'] = f.capitalize()
         info['au1_l'] = bib[bib.find(f) + len(f) + 1:].split('.')[0].strip()
         info['au2_f'] = ''
         info['au2_l'] = ''
@@ -94,22 +94,22 @@ def extract_info(bib_item):
         f1 = item.cite.split('\&')[0].strip()
         if f1[-1] == ',':
             f1 = f1[:-1]
-        info['au1_f'] = f1.title()
+        info['au1_f'] = f1.capitalize()
         info['au1_l'] = bib[bib.find(f1) + len(f1) + 1:].split('.')[0].strip()
         f2 = item.cite.split('\&')[1].split('(')[0].strip()
         l2 = bib[bib.find(f1) + len(f1) + 1:]
-        info['au2_f'] = f2.title()
+        info['au2_f'] = f2.capitalize()
         info['au2_l'] = l2[l2.find(f2) + len(f2) + 1:].split('.')[0].strip()
         info['au3_f'] = ''
         info['au3_l'] = ''
         info['num'] = 2
     else:
         f1 = item.cite.split('et al.')[0].strip()
-        info['au1_f'] = f1.title()
+        info['au1_f'] = f1.capitalize()
         info['au1_l'] = bib[bib.find(f1) + len(f1) + 1:].split('.')[0].strip()
         l2 = bib[bib.find(f1) + len(f1) + 1:]
         f2 = l2.split(',')[1].strip()
-        info['au2_f'] = f2.title()
+        info['au2_f'] = f2.capitalize()
         l3 = l2[l2.find(f2) + len(f2) + 1:]
         info['au2_l'] = l3.split('.')[0].strip()
         l4 = l3[l3.find(',') + 1:].strip()
@@ -117,7 +117,7 @@ def extract_info(bib_item):
             l5 = l4[l4.find('\\&') + 3:]
             f3 = l5.split(',')[0].strip()
             l6 = l5[l5.find(f3) + len(f3) + 1:]
-            info['au3_f'] = f3.title()
+            info['au3_f'] = f3.capitalize()
             info['au3_l'] = l6.split('.')[0].strip()
             info['num'] = 3
         else:
