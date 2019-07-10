@@ -21,9 +21,6 @@ def read_bib(filename):
     Returns:
         df (DataFrame): bib data
     """
-    cite = list()
-    key = list()
-    bib = list()
     bib_items = list()
     with open(filename) as f:
         bib_tag = False
@@ -38,7 +35,7 @@ def read_bib(filename):
                 if line.strip() != '':
                     if '\\bibitem[' in line:
                         if len(bib_lines) > 0:
-                            bib_items.append(''.join(bib_lines))
+                            bib_items.append(' '.join(bib_lines))
                         bib_lines = [line.strip()]
                     else:
                         bib_lines.append(line.strip())
