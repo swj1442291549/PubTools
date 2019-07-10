@@ -272,7 +272,7 @@ def is_key(key):
         return False
     if not key[:4].isdigit():
         return False
-    if not key[:-1].isupper():
+    if not key[-1].isupper():
         return False
     return True
 
