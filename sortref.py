@@ -206,11 +206,16 @@ def sort_key(df):
     Args:
         df (DataFrame): bib data
     """
+    for column_name in ['au1_f', 'au1_l', 'au2_f', 'au2_l', 'au3_f', 'au3_l']:
+        column_name_upper = column_name + '_u'
+        df[column_name_upper] = df[column_name].str.upper()
     df.sort_values(
-        ['au1_f', 'au1_l', 'au2_f', 'au2_l', 'au3_f', 'au3_l', 'num', 'year'],
+        ['au1_f_u', 'au1_l_u', 'au2_f_u', 'au2_l_u', 'au3_f_u', 'au3_l_u', 'num', 'year'],
         inplace=True)
     df.reset_index(inplace=True, drop=True)
-
+    for column_name in ['au1_f', 'au1_l', 'au2_f', 'au2_l', 'au3_f', 'au3_l']:
+        column_name_upper = column_name + '_u'
+        del df[column_name_upper]
 
 def remove_useless(df, content):
     """Remove the bibs don't appear in the content
