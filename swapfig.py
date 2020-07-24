@@ -44,5 +44,5 @@ if __name__ == "__main__":
     else:
         for pdf_filename in glob.glob(".figure/*.pdf"):
             copyfile(pdf_filename, Path(Path.cwd(), Path(pdf_filename).name))
-            rmtree(".figure")
+        rmtree(".figure")
 
