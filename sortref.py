@@ -145,6 +145,17 @@ def extract_info(bib_item):
 
 
 def read_content_dict(content_dict, filename):
+    """Read content dict from filename
+
+    A empty content_dict should be created before
+    Each value is composed of a two element list of content_before(bib) and content_after(bib), which be "" if not the main file
+
+    It will iterate through the \import command
+
+    Args:
+        content_dict (dict): initial empty content_dict
+        filename (Path): main tex filename
+    """
     content_before = list()
     content_after = list()
     with open(filename) as f:
@@ -257,7 +268,7 @@ def remove_useless(df, line_list):
 
     Args:
         df (DataFrame): bib data
-        content (list): content
+        line_list (list): line list
     """
     content_join = "".join([line.strip() for line in line_list])
     useless = list()
@@ -276,7 +287,7 @@ def find_missing(df, line_list):
 
     Args:
         df (DataFrame): bib data
-        content (list): content
+        line_list (list): line list
     """
     content_join = "".join([line.strip() for line in line_list])
     keys = list()
@@ -319,7 +330,8 @@ def write_tex(df, content_dict, main_file):
 
     Args:
         df (DataFrame): bib data
-        content (list): content
+        content_dict (dict): content dict
+        main_file (Path): main tex filename
     """
     content = content_dict[str(main_file)]
 
@@ -365,6 +377,14 @@ def find_all_tex_files():
     return tex_files
 
 def get_main_tex_file(filename):
+    """Get main tex filename
+
+    Args:
+        filename (str): input filename
+
+    Return:
+        filename (Path): absolute filename
+    """
     if not filename:
         if len(tex_files) == 1:
             filename = Path(tex_files[0])
@@ -397,9 +417,7 @@ if __name__ == "__main__":
     df = read_bib(main_file)
     content_dict = dict()
     read_content_dict(content_dict, str(main_file))
-
     line_list = merge_content_dict_to_line_list(content_dict)
-
     remove_useless(df, line_list)
     find_missing(df, line_list)
     check_arxiv(df)
