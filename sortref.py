@@ -1,6 +1,10 @@
+import os
 import re
+import sys
+import glob
 import argparse
 
+from pathlib import Path
 from collections import Counter
 
 import pandas as pd
@@ -140,16 +144,7 @@ def extract_info(bib_item):
     return info
 
 
-def read_content(filename):
-    """Read content from the file
-
-    Args:
-        filename (string): file name
-
-    Returns:
-        content_before (list): line before the bib
-        content_after (list): line after the bib
-    """
+def read_content_dict(content_dict, filename):
     content_before = list()
     content_after = list()
     with open(filename) as f:
@@ -162,9 +157,13 @@ def read_content(filename):
                 before = False
             if "\\end{thebibliography}" in line:
                 after = True
+            if "\\import" in line:
+                line_split = re.split("{|}", line)
+                import_filename = Path(line_split[1], "{0}.tex".format(line_split[3])).absolute()
+                read_content_dict(content_dict, str(import_filename))
             if after:
                 content_after.append(line)
-    return content_before, content_after
+    content_dict[filename] = [content_before, content_after]
 
 
 def drop_dup_key(df):
@@ -245,15 +244,22 @@ def sort_key(df):
         column_name_upper = column_name + "_u"
         del df[column_name_upper]
 
+def merge_content_dict_to_line_list(content_dict):
+    line_list = list()
+    for content in content_dict.values():
+        line_list.extend([line for line in content[0]])
+        line_list.extend([line for line in content[1]])
+    return line_list
 
-def remove_useless(df, content):
+
+def remove_useless(df, line_list):
     """Remove the bibs don't appear in the content
 
     Args:
         df (DataFrame): bib data
         content (list): content
     """
-    content_join = "".join([line.strip() for line in content[0]])
+    content_join = "".join([line.strip() for line in line_list])
     useless = list()
     for i in range(len(df)):
         key = df.iloc[i].key
@@ -265,14 +271,14 @@ def remove_useless(df, content):
     df.reset_index(inplace=True, drop=True)
 
 
-def find_missing(df, content):
+def find_missing(df, line_list):
     """Find missing keys in the content
 
     Args:
         df (DataFrame): bib data
         content (list): content
     """
-    content_join = "".join([line.strip() for line in content[0]])
+    content_join = "".join([line.strip() for line in line_list])
     keys = list()
     for item in re.findall("(?<=\{)[^\{\}]*(?=\})", content_join):
         if len(item) > 19:
@@ -306,7 +312,7 @@ def is_key(key):
     return True
 
 
-def write_tex(df, content, filename):
+def write_tex(df, content_dict, main_file):
     """Write sorted tex to new file
 
     Add suffix '_o' to the output filename
@@ -315,7 +321,9 @@ def write_tex(df, content, filename):
         df (DataFrame): bib data
         content (list): content
     """
-    filename_o = "{0}_o.tex".format(filename[: filename.find(".tex")])
+    content = content_dict[str(main_file)]
+
+    filename_o = "{0}_o.tex".format(main_file.stem)
     with open(filename_o, "w") as f:
         for line in content[0]:
             f.write(line)
@@ -347,20 +355,56 @@ def check_arxiv(df):
             )
         )
 
+def find_all_tex_files():
+    tex_files = []
+    start_dir = os.getcwd()
+    pattern = "*.tex"
+    for dir, _, _ in os.walk(start_dir):
+        if ".backup" not in dir:
+            tex_files.extend(glob.glob(os.path.join(dir,pattern))) 
+    return tex_files
+
+def get_main_tex_file(filename):
+    if not filename:
+        if len(tex_files) == 1:
+            filename = Path(tex_files[0])
+        else:
+            if str(Path(os.getcwd(), "ms.tex")) in tex_files:
+                filename = Path(os.getcwd(), "ms.tex")
+            else:
+                print("More than one tex files are found. Please specify one tex file!")
+                sys.exit()
+    else:
+        filename = Path(os.getcwd(), filename)
+    return filename
+
+def check_main_file_exist(main_file):
+    if not main_file.is_file():
+        print("File not Found!")
+        sys.exit()
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("filename", type=str, help="filename of tex file (ms.tex)")
+    parser.add_argument('-f', "--filename", type=str, help="filename of main tex file")
     args = parser.parse_args()
     filename = args.filename
 
-    df = read_bib(filename)
-    content = read_content(filename)
-    remove_useless(df, content)
-    find_missing(df, content)
+    tex_files = find_all_tex_files()
+    main_file = get_main_tex_file(filename)
+    check_main_file_exist(main_file)
+
+    df = read_bib(main_file)
+    content_dict = dict()
+    read_content_dict(content_dict, str(main_file))
+
+    line_list = merge_content_dict_to_line_list(content_dict)
+
+    remove_useless(df, line_list)
+    find_missing(df, line_list)
     check_arxiv(df)
     change_two_author_cite(df)
     drop_dup_key(df)
     change_dup_cite(df)
     sort_key(df)
-    write_tex(df, content, filename)
+    write_tex(df, content_dict, main_file)
