@@ -8,18 +8,17 @@ from pathlib import Path
 
 def cal_md5(filename):
     hasher = hashlib.md5()
-    with open(filename, 'rb') as f:
+    with open(filename, "rb") as f:
         buf = f.read()
         hasher.update(buf)
     return hasher.hexdigest()
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='Swap or Reverse')
+    parser = argparse.ArgumentParser(description="Swap or Reverse")
     parser.add_argument("-r", "--reverse", action="store_true")
     args = parser.parse_args()
     is_reverse = args.reverse
-
 
     tex_stems = list()
     for filename in glob.glob("*.tex"):
@@ -33,7 +32,6 @@ if __name__ == "__main__":
         source = "/Users/weijia/Github/PubTools/empty.pdf"
         md5_empty = cal_md5(source)
 
-
         for pdf_filename in glob.glob("*.pdf"):
             if Path(pdf_filename).stem in tex_stems:
                 continue
@@ -45,4 +43,3 @@ if __name__ == "__main__":
         for pdf_filename in glob.glob(".figure/*.pdf"):
             copyfile(pdf_filename, Path(Path.cwd(), Path(pdf_filename).name))
         rmtree(".figure")
-

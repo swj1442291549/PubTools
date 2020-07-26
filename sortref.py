@@ -170,7 +170,9 @@ def read_content_dict(content_dict, filename):
                 after = True
             if "\\import" in line:
                 line_split = re.split("{|}", line)
-                import_filename = Path(line_split[1], "{0}.tex".format(line_split[3])).absolute()
+                import_filename = Path(
+                    line_split[1], "{0}.tex".format(line_split[3])
+                ).absolute()
                 read_content_dict(content_dict, str(import_filename))
             if after:
                 content_after.append(line)
@@ -254,6 +256,7 @@ def sort_key(df):
     for column_name in ["au1_f", "au1_l", "au2_f", "au2_l", "au3_f", "au3_l"]:
         column_name_upper = column_name + "_u"
         del df[column_name_upper]
+
 
 def merge_content_dict_to_line_list(content_dict):
     line_list = list()
@@ -367,14 +370,16 @@ def check_arxiv(df):
             )
         )
 
+
 def find_all_tex_files():
     tex_files = []
     start_dir = os.getcwd()
     pattern = "*.tex"
     for dir, _, _ in os.walk(start_dir):
         if ".backup" not in dir:
-            tex_files.extend(glob.glob(os.path.join(dir,pattern))) 
+            tex_files.extend(glob.glob(os.path.join(dir, pattern)))
     return tex_files
+
 
 def get_main_tex_file(filename):
     """Get main tex filename
@@ -398,6 +403,7 @@ def get_main_tex_file(filename):
         filename = Path(os.getcwd(), filename)
     return filename
 
+
 def check_main_file_exist(main_file):
     if not main_file.is_file():
         print("File not Found!")
@@ -406,7 +412,7 @@ def check_main_file_exist(main_file):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('-f', "--filename", type=str, help="filename of main tex file")
+    parser.add_argument("-f", "--filename", type=str, help="filename of main tex file")
     args = parser.parse_args()
     filename = args.filename
 
