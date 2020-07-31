@@ -141,6 +141,12 @@ def extract_info(bib_item):
             l5 = l4[l4.find(f3) + len(f3) + 1 :]
             info["au3_l"] = l5.split(".")[0].strip()
             info["num"] = 4
+    info["au1_f_low"] = info["au1_f"].lower()
+    info["au1_l_low"] = info["au1_l"].lower()
+    info["au2_f_low"] = info["au2_f"].lower()
+    info["au2_l_low"] = info['au2_l'].lower()
+    info["au3_f_low"] = info["au3_f"].lower()
+    info["au3_l_low"] = info["au3_l"].lower()
     return info
 
 
@@ -200,7 +206,7 @@ def change_dup_cite(df):
     for cite in cite_dups:
         df_dup = df[df["cite"] == cite]
         df_dup.sort_values(
-            ["au1_f", "au1_l", "au2_f", "au2_l", "au3_f", "au3_l", "num", "year"],
+            ["au1_f_low", "au1_l_low", "au2_f_low", "au2_l_low", "au3_f_low", "au3_l_low", "num", "year"],
             inplace=True,
         )
         print(
@@ -236,26 +242,20 @@ def sort_key(df):
     Args:
         df (DataFrame): bib data
     """
-    for column_name in ["au1_f", "au1_l", "au2_f", "au2_l", "au3_f", "au3_l"]:
-        column_name_upper = column_name + "_u"
-        df[column_name_upper] = df[column_name].str.upper()
     df.sort_values(
         [
-            "au1_f_u",
-            "au1_l_u",
-            "au2_f_u",
-            "au2_l_u",
-            "au3_f_u",
-            "au3_l_u",
+            "au1_f_low",
+            "au1_l_low",
+            "au2_f_low",
+            "au2_l_low",
+            "au3_f_low",
+            "au3_l_low",
             "num",
             "year",
         ],
         inplace=True,
     )
     df.reset_index(inplace=True, drop=True)
-    for column_name in ["au1_f", "au1_l", "au2_f", "au2_l", "au3_f", "au3_l"]:
-        column_name_upper = column_name + "_u"
-        del df[column_name_upper]
 
 
 def merge_content_dict_to_line_list(content_dict):
