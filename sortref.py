@@ -2,6 +2,7 @@ import os
 import re
 import sys
 import glob
+import logging
 import argparse
 
 from pathlib import Path
@@ -209,7 +210,7 @@ def change_dup_cite(df):
             ["au1_f_low", "au1_l_low", "au2_f_low", "au2_l_low", "au3_f_low", "au3_l_low", "num", "year"],
             inplace=True,
         )
-        print(
+        logging.info(
             "{0} duplicate cites {1} are found: {2}".format(
                 len(df_dup), cite, ", ".join(df_dup.key)
             )
@@ -278,7 +279,7 @@ def remove_useless(df, line_list):
     for i in range(len(df)):
         key = df.iloc[i].key
         if key not in content_join:
-            print("No citation of {0} is found!".format(key))
+            logging.info("No citation of {0} is found!".format(key))
             useless.append(df.index[i])
     for index in useless:
         df.drop(index, inplace=True)
@@ -308,7 +309,7 @@ def find_missing(df, line_list):
     missing_key = list()
     for key in keys:
         if key.strip() not in df.key.values:
-            print("{0} is not found in the bib!".format(key.strip()))
+            logging.info("{0} is not found in the bib!".format(key.strip()))
             missing_key.append(key.strip())
     missing_bibs = adsapi.export_aastex(missing_key)
     if missing_bibs is not None:
@@ -320,7 +321,7 @@ def find_missing(df, line_list):
                 missing_key_found.append(info['key'])
             missing_key_not_found = list(set(missing_key) - set(missing_key_found))
             for key in missing_key_not_found:
-                print(">>> {0} is not found in the ADS!".format(key))
+                logging.warning("{0} is not found in the ADS!".format(key))
         else:
             for bib_item in missing_bibs:
                 df.loc[len(df)] = extract_info(bib_item)
@@ -377,7 +378,7 @@ def check_arxiv(df):
         if "arXiv" in df.iloc[i]["key"]:
             arxiv_list.append(df.iloc[i]["key"])
     if len(arxiv_list) > 0:
-        print(
+        logging.warning(
             "{0} arXiv citations in bib: {1}".format(
                 len(arxiv_list), " ".join(arxiv_list)
             )
@@ -410,7 +411,7 @@ def get_main_tex_file(filename):
             if str(Path(os.getcwd(), "ms.tex")) in tex_files:
                 filename = Path(os.getcwd(), "ms.tex")
             else:
-                print("More than one tex files are found. Please specify one tex file!")
+                logging.warning("More than one tex files are found. Please specify one tex file!")
                 sys.exit()
     else:
         filename = Path(os.getcwd(), filename)
@@ -419,7 +420,7 @@ def get_main_tex_file(filename):
 
 def check_main_file_exist(main_file):
     if not main_file.is_file():
-        print("File not Found!")
+        logging.error("File not Found!")
         sys.exit()
 
 
@@ -428,6 +429,15 @@ if __name__ == "__main__":
     parser.add_argument("-f", "--filename", type=str, help="filename of main tex file")
     args = parser.parse_args()
     filename = args.filename
+
+    logger = logging.getLogger()
+    logger.setLevel(logging.DEBUG)
+
+    ch = logging.StreamHandler()
+    ch.setLevel(logging.INFO)
+    formatter = logging.Formatter("%(levelname)s - %(message)s")
+    ch.setFormatter(formatter)
+    logger.addHandler(ch)
 
     tex_files = find_all_tex_files()
     main_file = get_main_tex_file(filename)
@@ -445,3 +455,4 @@ if __name__ == "__main__":
     change_dup_cite(df)
     sort_key(df)
     write_tex(df, content_dict, main_file)
+
