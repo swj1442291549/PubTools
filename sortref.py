@@ -145,7 +145,7 @@ def extract_info(bib_item):
     info["au1_f_low"] = info["au1_f"].lower()
     info["au1_l_low"] = info["au1_l"].lower()
     info["au2_f_low"] = info["au2_f"].lower()
-    info["au2_l_low"] = info['au2_l'].lower()
+    info["au2_l_low"] = info["au2_l"].lower()
     info["au3_f_low"] = info["au3_f"].lower()
     info["au3_l_low"] = info["au3_l"].lower()
     return info
@@ -207,7 +207,16 @@ def change_dup_cite(df):
     for cite in cite_dups:
         df_dup = df[df["cite"] == cite]
         df_dup.sort_values(
-            ["au1_f_low", "au1_l_low", "au2_f_low", "au2_l_low", "au3_f_low", "au3_l_low", "num", "year"],
+            [
+                "au1_f_low",
+                "au1_l_low",
+                "au2_f_low",
+                "au2_l_low",
+                "au3_f_low",
+                "au3_l_low",
+                "num",
+                "year",
+            ],
             inplace=True,
         )
         logging.info(
@@ -318,7 +327,7 @@ def find_missing(df, line_list):
             for bib_item in missing_bibs:
                 info = extract_info(bib_item)
                 df.loc[len(df)] = info
-                missing_key_found.append(info['key'])
+                missing_key_found.append(info["key"])
             missing_key_not_found = list(set(missing_key) - set(missing_key_found))
             for key in missing_key_not_found:
                 logging.warning("{0} is not found in the ADS!".format(key))
@@ -411,7 +420,9 @@ def get_main_tex_file(filename):
             if str(Path(os.getcwd(), "ms.tex")) in tex_files:
                 filename = Path(os.getcwd(), "ms.tex")
             else:
-                logging.warning("More than one tex files are found. Please specify one tex file!")
+                logging.warning(
+                    "More than one tex files are found. Please specify one tex file!"
+                )
                 sys.exit()
     else:
         filename = Path(os.getcwd(), filename)
@@ -455,4 +466,3 @@ if __name__ == "__main__":
     change_dup_cite(df)
     sort_key(df)
     write_tex(df, content_dict, main_file)
-
