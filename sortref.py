@@ -338,6 +338,8 @@ def find_missing(df, line_list):
 
 def is_key(key):
     key = key.strip()
+    if len(key) <= 5 or len(key) > 25:
+        return False
     if key[-4:].isdigit() and not key[-5].isdigit():
         return True
     if len(key) != 19:
@@ -414,6 +416,8 @@ def get_main_tex_file(filename):
         filename (Path): absolute filename
     """
     if not filename:
+        if filename is None:
+            logging.error("No tex file is found!")
         if len(tex_files) == 1:
             filename = Path(tex_files[0])
         else:
