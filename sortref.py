@@ -311,12 +311,25 @@ def find_missing(df, line_list):
             print("{0} is not found in the bib!".format(key.strip()))
             missing_key.append(key.strip())
     missing_bibs = adsapi.export_aastex(missing_key)
-    for bib_item in missing_bibs:
-        df.loc[len(df)] = extract_info(bib_item)
+    if missing_bibs is not None:
+        if len(missing_bibs) < len(missing_key):
+            missing_key_found = list()
+            for bib_item in missing_bibs:
+                info = extract_info(bib_item)
+                df.loc[len(df)] = info
+                missing_key_found.append(info['key'])
+            missing_key_not_found = list(set(missing_key) - set(missing_key_found))
+            for key in missing_key_not_found:
+                print(">>> {0} is not found in the ADS!".format(key))
+        else:
+            for bib_item in missing_bibs:
+                df.loc[len(df)] = extract_info(bib_item)
 
 
 def is_key(key):
     key = key.strip()
+    if key[-4:].isdigit() and not key[-5].isdigit():
+        return True
     if len(key) != 19:
         return False
     if not key[:4].isdigit():
