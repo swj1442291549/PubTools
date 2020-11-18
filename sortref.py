@@ -417,7 +417,7 @@ def get_main_tex_file(filename):
     """
     if not filename:
         if filename is None:
-            logging.error("No tex file is found!")
+            logging.info("No tex file is specified. Try to find one text file.")
         if len(tex_files) == 1:
             filename = Path(tex_files[0])
         else:
@@ -425,7 +425,7 @@ def get_main_tex_file(filename):
                 filename = Path(os.getcwd(), "ms.tex")
             else:
                 logging.warning(
-                    "More than one tex files are found. Please specify one tex file!"
+                    "None or more than one tex files are found. Please specify one tex file!"
                 )
                 sys.exit()
     else:
