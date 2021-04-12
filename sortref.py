@@ -439,9 +439,16 @@ def check_main_file_exist(main_file):
         sys.exit()
 
 
+def replace_file(main_file):
+    Path("{0}_o.tex".format(main_file.stem)).rename(main_file)
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-f", "--filename", type=str, help="filename of main tex file")
+    parser.add_argument(
+        "-r", "--replace", help="replace original file", action="store_true"
+    )
     args = parser.parse_args()
     filename = args.filename
 
@@ -470,3 +477,5 @@ if __name__ == "__main__":
     change_dup_cite(df)
     sort_key(df)
     write_tex(df, content_dict, main_file)
+    if args.replace:
+        replace_file(main_file)
