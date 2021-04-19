@@ -231,6 +231,7 @@ def change_dup_cite(df):
                 df.at[df_dup.index[i], "cite"] = (
                     item["cite"][: year_re.span()[1]]
                     + chr(97 + i)
+                    + item["cite"][year_re.span()[1] :]
                 )  # Add a, b, c
             year_re = re.search("[1-3][0-9]{3}", item.bib)
             if hasattr(year_re, "span"):
