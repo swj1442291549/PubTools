@@ -226,19 +226,22 @@ def change_dup_cite(df):
         )
         for i in range(len(df_dup)):
             item = df_dup.iloc[i]
-            year_re = re.search("[1-3][0-9]{3}", item.cite)  # Search for year
-            if hasattr(year_re, "span"):
-                df.at[df_dup.index[i], "cite"] = (
-                    item["cite"][: year_re.span()[1]]
-                    + chr(97 + i)
-                    + item["cite"][year_re.span()[1] :]
-                )  # Add a, b, c
-            year_re = re.search("[1-3][0-9]{3}", item.bib)
-            if hasattr(year_re, "span"):
-                df.at[df_dup.index[i], "bib"] = (
-                    item["bib"][: year_re.span()[1]]
-                    + chr(97 + i)
-                )
+            if re.search("[1-3][0-9]{3}[a-z]", item.cite) is None:
+                year_re = re.search("[1-3][0-9]{3}", item.cite)  # Search for year
+                if hasattr(year_re, "span"):
+                    df.at[df_dup.index[i], "cite"] = (
+                        item["cite"][: year_re.span()[1]]
+                        + chr(97 + i)
+                        + item["cite"][year_re.span()[1] :]
+                    )  # Add a, b, c
+            if re.search("[1-3][0-9]{3}[a-z]", item.bib) is None:
+                year_re = re.search("[1-3][0-9]{3}", item.bib)
+                if hasattr(year_re, "span"):
+                    df.at[df_dup.index[i], "bib"] = (
+                        item["bib"][: year_re.span()[1]]
+                        + chr(97 + i)
+                        + item["bib"][year_re.span()[1] :]
+                    )
     df.drop_duplicates("cite", keep=False, inplace=True)
     df.reset_index(inplace=True, drop=True)
 
