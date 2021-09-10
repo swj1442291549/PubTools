@@ -451,9 +451,15 @@ def replace_file(main_file):
     Path("{0}_o.tex".format(main_file.stem)).rename(main_file)
 
 
+def remove_doi(df):
+    for i in range(len(df)):
+        item = df.iloc[i]
+        df.loc[i, "bib"] = item.bib.split(" doi:")[0]
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-f", "--filename", type=str, help="filename of main tex file")
+    parser.add_argument("-d", "--doi", help="keep doi", action="store_true")
     parser.add_argument(
         "-r", "--replace", help="replace original file", action="store_true"
     )
@@ -484,6 +490,8 @@ if __name__ == "__main__":
     drop_dup_key(df)
     change_dup_cite(df)
     sort_key(df)
+    if not args.doi:
+        remove_doi(df)
     write_tex(df, content_dict, main_file)
     if args.replace:
         replace_file(main_file)
