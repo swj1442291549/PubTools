@@ -1,12 +1,13 @@
 import ads
-import pandas as pd
 
 
-def export_aastex(bibcodes):
+def export_citation(bibcodes, output_format="aastex"):
     """Export the bibcodes in the form of aastex 
 
     Args:
         bibcodes (list): string list of bibcodes
+        output_format (str): output format
+                             ("aastex")
 
     Returns:
         bibs (list): string list of bibs
@@ -14,7 +15,7 @@ def export_aastex(bibcodes):
     if len(bibcodes) == 0:
         return []
     else:
-        q = ads.ExportQuery(bibcodes, format="aastex")
+        q = ads.ExportQuery(bibcodes, format=output_format)
         try:
             export_response = q.execute()
         except:
