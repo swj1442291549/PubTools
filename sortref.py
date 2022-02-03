@@ -456,6 +456,41 @@ def remove_doi(df):
         item = df.iloc[i]
         df.loc[i, "bib"] = item.bib.split(" doi:")[0]
 
+
+def locate_bib(content_dict, main_file):
+    for line in content_dict[str(main_file)][0]:
+        if "\\addbibresource" in line:
+            return line.split("{")[1].split("}")[0]
+    return False
+
+
+def query_bib_to_file(df, bib_file, is_aas):
+    bib_str = adsapi.export_citation(list(df.key.values), "bibtex")
+    aas_journal_dict = read_aas_journal_dict()
+    with open(bib_file, "w") as f:
+        for line in bib_str:
+            if not is_aas and line.strip().startswith("journal"):
+                split = re.split("{|}", line)
+                if split[1] in aas_journal_dict:
+                    split[1] = aas_journal_dict[split[1]]
+                    line = split[0] + "{" + split[1] + "}" + split[2]
+                else:
+                    logging.warning("{0} is not found in the AAS journal TeX!".format(split[1]))
+            f.write(line + "\n")
+
+
+
+def read_aas_journal_dict():
+    with open("./aas_journal.cls", "r") as f:
+        aas_journal_dict = dict()
+        for line in f:
+            if "newcommand" in line:
+                split = re.split("newcommand|{|}", line)
+                aas_journal_dict[split[1].strip()] = split[3].strip()
+    return aas_journal_dict
+
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-f", "--filename", type=str, help="filename of main tex file")
