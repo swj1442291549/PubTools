@@ -334,7 +334,7 @@ def find_missing(df, line_list):
         if key.strip() not in df.key.values:
             logging.info("{0} is not found in the bib!".format(key.strip()))
             missing_key.append(key.strip())
-    missing_bibs = adsapi.export_aastex(missing_key)
+    missing_bibs = adsapi.export_citation(missing_key)
     if missing_bibs is not None:
         if len(missing_bibs) < len(missing_key):
             missing_key_found = list()
@@ -365,7 +365,7 @@ def is_key(key):
     return True
 
 
-def write_tex(df, content_dict, main_file):
+def write_tex(df, content_dict, main_file, is_aas):
     """Write sorted tex to new file
 
     Add suffix '_o' to the output filename
@@ -376,6 +376,7 @@ def write_tex(df, content_dict, main_file):
         main_file (Path): main tex filename
     """
     content = content_dict[str(main_file)]
+    aas_journal_dict = read_aas_journal_dict()
 
     filename_o = "{0}_o.tex".format(main_file.stem)
     with open(filename_o, "w") as f:
@@ -383,7 +384,14 @@ def write_tex(df, content_dict, main_file):
             f.write(line)
         for i in range(len(df)):
             item = df.iloc[i]
-            f.write("\\bibitem[{0}]{{{1}}}{2}\n".format(item.cite, item.key, item.bib))
+            bib_str = item.bib
+            if not is_aas:
+                split = bib_str.split(",")
+                for j in range(len(split)):
+                    if split[j].strip() in aas_journal_dict:
+                        split[j] = aas_journal_dict[split[j].strip()]
+                    bib_str = ",".join(split)
+            f.write("\\bibitem[{0}]{{{1}}}{2}\n".format(item.cite, item.key, bib_str))
         for line in content[1]:
             f.write(line)
 
@@ -504,6 +512,12 @@ if __name__ == "__main__":
     parser.add_argument(
         "-r", "--replace", help="replace original file", action="store_true"
     )
+    parser.add_argument(
+        "-b", "--bib", help="use bib file", action="store_true"
+    )
+    parser.add_argument(
+        "-a", "--aas", help="in aastex env", action="store_false"
+    )
     args = parser.parse_args()
     filename = args.filename
 
@@ -533,6 +547,10 @@ if __name__ == "__main__":
     sort_key(df)
     if not args.doi:
         remove_doi(df)
-    write_tex(df, content_dict, main_file)
-    if args.replace:
-        replace_file(main_file)
+    if not args.bib:
+        write_tex(df, content_dict, main_file, args.aas)
+        if args.replace:
+            replace_file(main_file)
+    else:
+        bib_file = locate_bib(content_dict, main_file)
+        query_bib_to_file(df, bib_file, args.aas)
