@@ -187,6 +187,12 @@ def read_content_dict(content_dict, filename):
                     line_split[1], "{0}.tex".format(line_split[3])
                 ).absolute()
                 read_content_dict(content_dict, str(import_filename))
+            if "\\include{" in line:
+                line_split = re.split("{|}", line)
+                import_filename = Path(
+                    "{0}.tex".format(line_split[1])
+                ).absolute()
+                read_content_dict(content_dict, str(import_filename))
             if after:
                 content_after.append(line)
     content_dict[filename] = [content_before, content_after]
