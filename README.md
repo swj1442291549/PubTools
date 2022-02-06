@@ -19,3 +19,6 @@ While running, it will throw some error or warning messages. Be sure to deal wit
 sed -e "s///" ms.tex > msn.tex
 ```
 To enter ``, type `CTRL-V`, `CTRL-M`
+
+#TODO
+better implementation for bib tex
