@@ -189,9 +189,7 @@ def read_content_dict(content_dict, filename):
                 read_content_dict(content_dict, str(import_filename))
             if "\\include{" in line:
                 line_split = re.split("{|}", line)
-                import_filename = Path(
-                    "{0}.tex".format(line_split[1])
-                ).absolute()
+                import_filename = Path("{0}.tex".format(line_split[1])).absolute()
                 read_content_dict(content_dict, str(import_filename))
             if after:
                 content_after.append(line)
@@ -406,6 +404,11 @@ def change_two_author_cite(df):
 
 
 def check_arxiv(df):
+    """Check whether there is any arXiv ciatation
+
+    Args:
+        df (DataFrame): bib data
+    """
     arxiv_list = list()
     for i in range(len(df)):
         if "arXiv" in df.iloc[i]["key"]:
@@ -489,9 +492,10 @@ def query_bib_to_file(df, bib_file, is_aas):
                     split[1] = aas_journal_dict[split[1]]
                     line = split[0] + "{" + split[1] + "}" + split[2]
                 else:
-                    logging.warning("{0} is not found in the AAS journal TeX!".format(split[1]))
+                    logging.warning(
+                        "{0} is not found in the AAS journal TeX!".format(split[1])
+                    )
             f.write(line + "\n")
-
 
 
 def read_aas_journal_dict():
@@ -502,7 +506,6 @@ def read_aas_journal_dict():
                 split = re.split("newcommand|{|}", line)
                 aas_journal_dict[split[1].strip()] = split[3].strip()
     return aas_journal_dict
-
 
 
 if __name__ == "__main__":
