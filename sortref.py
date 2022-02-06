@@ -495,7 +495,7 @@ def query_bib_to_file(df, bib_file, is_aas):
 
 
 def read_aas_journal_dict():
-    with open("./aas_journal.cls", "r") as f:
+    with open(Path(os.environ["pub"], "aas_journal.cls"), "r") as f:
         aas_journal_dict = dict()
         for line in f:
             if "newcommand" in line:
