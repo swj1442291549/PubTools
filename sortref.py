@@ -512,12 +512,8 @@ if __name__ == "__main__":
     parser.add_argument(
         "-r", "--replace", help="replace original file", action="store_true"
     )
-    parser.add_argument(
-        "-b", "--bib", help="use bib file", action="store_true"
-    )
-    parser.add_argument(
-        "-a", "--aas", help="in aastex env", action="store_false"
-    )
+    parser.add_argument("-b", "--bib", help="use bib file", action="store_true")
+    parser.add_argument("-a", "--aas", help="not in aastex env", action="store_false")
     args = parser.parse_args()
     filename = args.filename
 
