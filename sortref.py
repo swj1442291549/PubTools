@@ -387,7 +387,7 @@ def write_tex(df, content_dict, main_file, is_aas):
                 split = bib_str.split(",")
                 for j in range(len(split)):
                     if split[j].strip() in aas_journal_dict:
-                        split[j] = aas_journal_dict[split[j].strip()]
+                        split[j] = " " + aas_journal_dict[split[j].strip()]
                     bib_str = ",".join(split)
             f.write("\\bibitem[{0}]{{{1}}}{2}\n".format(item.cite, item.key, bib_str))
         for line in content[1]:
