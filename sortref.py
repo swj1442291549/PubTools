@@ -283,8 +283,8 @@ def sort_key(df):
 def merge_content_dict_to_line_list(content_dict):
     line_list = list()
     for content in content_dict.values():
-        line_list.extend([line for line in content[0]])
-        line_list.extend([line for line in content[1]])
+        line_list.extend([line for line in content[0] if not line.startswith("%")])
+        line_list.extend([line for line in content[1] if not line.startswith("%")])
     return line_list
 
 
