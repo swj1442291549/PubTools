@@ -1,30 +1,29 @@
+import argparse
+import glob
+import logging
 import os
 import re
 import sys
-import glob
-import logging
-import argparse
-
-from pathlib import Path
 from collections import Counter
+from pathlib import Path
 
 import pandas as pd
 
 import adsapi
 
 
-def read_bib(filename):
-    """Read bib from the tex file
+def read_bib(filename: Path) -> pd.DataFrame:
+    r"""Read bib from the tex file.
 
     separate the bibitem into cite, key, bib
 
     "\bibitem[cite]{key} bib"
 
     Args:
-        filename (string): file name
+        filename (Path): file name
 
     Returns:
-        df (DataFrame): bib data
+        df (pd.DataFrame): bib data
     """
     bib_items = list()
     with open(filename) as f:
@@ -36,7 +35,7 @@ def read_bib(filename):
                 item = "".join(bib_lines)
                 if item != "":
                     bib_items.append(item)
-            if bib_tag == True:
+            if bib_tag:
                 if line.strip() != "":
                     if "\\bibitem[" in line:
                         if len(bib_lines) > 0:
@@ -47,7 +46,7 @@ def read_bib(filename):
             if "\\begin{thebibliography}" in line:
                 bib_tag = True
     info_list = list()
-    pd.options.mode.chained_assignment = None
+    pd.options.mode.chained_assignment = None  # type: ignore
     if len(bib_items) > 0:
         for bib_item in bib_items:
             info_list.append(extract_info(bib_item))
@@ -77,20 +76,18 @@ def read_bib(filename):
     return df
 
 
-def extract_info(bib_item):
-    """Extract info from bib_item
+def extract_info(bib_item: str) -> dict:
+    """Extract info from bib_item.
 
     Args:
-        bib_item (string): bib item
+        bib_item (str): bib item
 
     Returns:
         info (dict): info dictionary
     """
     info = dict()
     info["cite"] = bib_item.split("\\bibitem[")[1].split("]")[0]
-    info["key"] = (
-        bib_item.split("\\bibitem[")[1].split("]")[1].split("{")[1].split("}")[0]
-    )
+    info["key"] = bib_item.split("\\bibitem[")[1].split("]")[1].split("{")[1].split("}")[0]
     bib = (
         bib_item.split("\\bibitem[")[1]
         .split("]")[1][bib_item.split("\\bibitem[")[1].split("]")[1].find("}") + 1 :]
@@ -157,13 +154,13 @@ def extract_info(bib_item):
     return info
 
 
-def read_content_dict(content_dict, filename):
-    """Read content dict from filename
+def read_content_dict(content_dict: dict, filename):
+    """Read content dict from filename.
 
     A empty content_dict should be created before
     Each value is composed of a two element list of content_before(bib) and content_after(bib), which be "" if not the main file
 
-    It will iterate through the \import command
+    It will iterate through the import command
 
     Args:
         content_dict (dict): initial empty content_dict
@@ -183,9 +180,7 @@ def read_content_dict(content_dict, filename):
                 after = True
             if "\\import" in line:
                 line_split = re.split("{|}", line)
-                import_filename = Path(
-                    line_split[1], "{0}.tex".format(line_split[3])
-                ).absolute()
+                import_filename = Path(line_split[1], "{0}.tex".format(line_split[3])).absolute()
                 read_content_dict(content_dict, str(import_filename))
             if "\\include{" in line:
                 line_split = re.split("{|}", line)
@@ -196,24 +191,24 @@ def read_content_dict(content_dict, filename):
     content_dict[filename] = [content_before, content_after]
 
 
-def drop_dup_key(df):
-    """Drop the duplicate keys
+def drop_dup_key(df: pd.DataFrame) -> None:
+    """Drop the duplicate keys.
 
     Args:
-        df (DataFrame): data
+        df (pd.DataFrame): data
     """
     df.drop_duplicates("key", inplace=True)
 
 
-def change_dup_cite(df):
-    """Change the duplicate cites
+def change_dup_cite(df: pd.DataFrame) -> None:
+    """Change the duplicate cites.
 
     Ordered by the key and add a, b, c ... at the end of year in cite
 
     Args:
-        df (DataFrame): data
+        df (pd.DataFrame): data
     """
-    cite_dups = Counter(df[df.duplicated("cite") == True]["cite"].values).keys()
+    cite_dups = Counter(df[df.duplicated("cite")]["cite"].values).keys()
     for cite in cite_dups:
         df_dup = df[df["cite"] == cite]
         df_dup.sort_values(
@@ -240,29 +235,29 @@ def change_dup_cite(df):
                 year_re = re.search("[1-3][0-9]{3}", item.cite)  # Search for year
                 if hasattr(year_re, "span"):
                     df.at[df_dup.index[i], "cite"] = (
-                        item["cite"][: year_re.span()[1]]
+                        item["cite"][: year_re.span()[1]]  # type: ignore
                         + chr(97 + i)
-                        + item["cite"][year_re.span()[1] :]
+                        + item["cite"][year_re.span()[1] :]  # type: ignore
                     )  # Add a, b, c
             if re.search("[1-3][0-9]{3}[a-z]", item.bib) is None:
                 year_re = re.search("[1-3][0-9]{3}", item.bib)
                 if hasattr(year_re, "span"):
                     df.at[df_dup.index[i], "bib"] = (
-                        item["bib"][: year_re.span()[1]]
+                        item["bib"][: year_re.span()[1]]  # type: ignore
                         + chr(97 + i)
-                        + item["bib"][year_re.span()[1] :]
+                        + item["bib"][year_re.span()[1] :]  # type: ignore
                     )
     df.drop_duplicates("cite", keep=False, inplace=True)
     df.reset_index(inplace=True, drop=True)
 
 
-def sort_key(df):
-    """Sort the key
+def sort_key(df: pd.DataFrame):
+    """Sort the key.
 
     In the order of first author's first name, last name, ..., total num, year
 
     Args:
-        df (DataFrame): bib data
+        df (pd.DataFrame): bib data
     """
     df.sort_values(
         [
@@ -280,7 +275,15 @@ def sort_key(df):
     df.reset_index(inplace=True, drop=True)
 
 
-def merge_content_dict_to_line_list(content_dict):
+def merge_content_dict_to_line_list(content_dict: dict) -> list:
+    """Merge content dict to line list.
+
+    Args:
+        content_dict (dict): content dict
+
+    Returns:
+        line_list (list): line list
+    """
     line_list = list()
     for content in content_dict.values():
         line_list.extend([line for line in content[0] if not line.startswith("%")])
@@ -288,8 +291,8 @@ def merge_content_dict_to_line_list(content_dict):
     return line_list
 
 
-def remove_useless(df, line_list):
-    """Remove the bibs don't appear in the content
+def remove_useless(df: pd.DataFrame, line_list: list) -> None:
+    """Remove the bibs don't appear in the content.
 
     Args:
         df (DataFrame): bib data
@@ -307,11 +310,11 @@ def remove_useless(df, line_list):
     df.reset_index(inplace=True, drop=True)
 
 
-def find_missing(df, line_list):
-    """Find missing keys in the content
+def find_missing(df: pd.DataFrame, line_list: list[str]) -> None:
+    """Find missing keys in the content.
 
     Args:
-        df (DataFrame): bib data
+        df (pd.DataFrame): bib data
         line_list (list): line list
     """
     content_join = "".join([line.strip() for line in line_list])
@@ -338,17 +341,25 @@ def find_missing(df, line_list):
             missing_key_found = list()
             for bib_item in missing_bibs:
                 info = extract_info(bib_item)
-                df.loc[len(df)] = info
+                df.loc[len(df)] = info  # type: ignore
                 missing_key_found.append(info["key"])
             missing_key_not_found = list(set(missing_key) - set(missing_key_found))
             for key in missing_key_not_found:
                 logging.warning("{0} is not found in the ADS!".format(key))
         else:
             for bib_item in missing_bibs:
-                df.loc[len(df)] = extract_info(bib_item)
+                df.loc[len(df)] = extract_info(bib_item)  # type: ignore
 
 
-def is_key(key):
+def is_key(key: str) -> bool:
+    """Check whether input is a valid bibtex key.
+
+    Args:
+        key (str): input key string
+
+    Returns:
+        is_key (bool): whether input is a valid bibtex key
+    """
     key = key.strip()
     if len(key) <= 5 or len(key) > 25:
         return False
@@ -363,8 +374,8 @@ def is_key(key):
     return True
 
 
-def write_tex(df, content_dict, main_file, is_aas):
-    """Write sorted tex to new file
+def write_tex(df: pd.DataFrame, content_dict: dict, main_file: Path, is_aas: bool) -> None:
+    """Write sorted tex to new file.
 
     Add suffix '_o' to the output filename
 
@@ -372,6 +383,7 @@ def write_tex(df, content_dict, main_file, is_aas):
         df (DataFrame): bib data
         content_dict (dict): content dict
         main_file (Path): main tex filename
+        is_aas (bool): whether is aas format
     """
     content = content_dict[str(main_file)]
     aas_journal_dict = read_aas_journal_dict()
@@ -394,20 +406,23 @@ def write_tex(df, content_dict, main_file, is_aas):
             f.write(line)
 
 
-def change_two_author_cite(df):
+def change_two_author_cite(df: pd.DataFrame) -> None:
+    """Change two author cite format.
+
+    Args:
+        df (pd.DataFrame): bib data
+    """
     df_sel = df[df.num == 2]
     for i in range(len(df_sel)):
         item = df_sel.iloc[i]
-        df.loc[item.name, "cite"] = "{0} \& {1}({2})".format(
-            item.au1_f, item.au2_f, item.year
-        )
+        df.loc[item.name, "cite"] = "{0} \& {1}({2})".format(item.au1_f, item.au2_f, item.year)
 
 
-def check_arxiv(df):
-    """Check whether there is any arXiv ciatation
+def check_arxiv(df: pd.DataFrame) -> None:
+    """Check whether there is any arXiv ciatation.
 
     Args:
-        df (DataFrame): bib data
+        df (pd.DataFrame): bib data
     """
     arxiv_list = list()
     for i in range(len(df)):
@@ -415,13 +430,16 @@ def check_arxiv(df):
             arxiv_list.append(df.iloc[i]["key"])
     if len(arxiv_list) > 0:
         logging.warning(
-            "{0} arXiv citations in bib: {1}".format(
-                len(arxiv_list), " ".join(arxiv_list)
-            )
+            "{0} arXiv citations in bib: {1}".format(len(arxiv_list), " ".join(arxiv_list))
         )
 
 
-def find_all_tex_files():
+def find_all_tex_files() -> list[str]:
+    """Find all tex files in the current dicrectory.
+
+    Returns:
+        tex_files (list[str]): list of tex file name
+    """
     tex_files = []
     start_dir = os.getcwd()
     pattern = "*.tex"
@@ -432,7 +450,7 @@ def find_all_tex_files():
 
 
 def get_main_tex_file(filename):
-    """Get main tex filename
+    """Get main tex filename.
 
     Args:
         filename (str): input filename
@@ -443,6 +461,7 @@ def get_main_tex_file(filename):
     if not filename:
         if filename is None:
             logging.info("No tex file is specified. Try to find one text file.")
+        tex_files = find_all_tex_files()
         if len(tex_files) == 1:
             filename = Path(tex_files[0])
         else:
@@ -455,34 +474,67 @@ def get_main_tex_file(filename):
                 sys.exit()
     else:
         filename = Path(os.getcwd(), filename)
+    logging.info(f"Found {filename}")
     return filename
 
 
-def check_main_file_exist(main_file):
+def check_main_file_exist(main_file: Path) -> None:
+    """Check main file exist.
+
+    Args:
+        main_file (Path): main tex file
+    """
     if not main_file.is_file():
         logging.error("File not Found!")
         sys.exit()
 
 
-def replace_file(main_file):
+def replace_file(main_file: Path) -> None:
+    """Replace initial file.
+
+    Args:
+        main_file (Path): main tex file
+    """
     Path("{0}_o.tex".format(main_file.stem)).rename(main_file)
 
 
-def remove_doi(df):
+def remove_doi(df: pd.DataFrame) -> None:
+    """Remove doi info in the data.
+
+    Args:
+        df (pd.DataFrame): bib data frame
+    """
     for i in range(len(df)):
         item = df.iloc[i]
         df.loc[i, "bib"] = item.bib.split(" doi:")[0]
 
 
-def locate_bib(content_dict, main_file):
+def locate_bib(content_dict: dict[str, list], main_file: Path) -> str | None:
+    """Locate bib file.
+
+    Args:
+        content_dict (dict): content dictionary
+        main_file (Path): path of the main tex file
+
+    Returns:
+        bib_file (str): bib file path. If not found, return None.
+    """
     for line in content_dict[str(main_file)][0]:
         if "\\addbibresource" in line:
             return line.split("{")[1].split("}")[0]
-    return False
+    return None
 
 
-def query_bib_to_file(df, bib_file, is_aas):
+def query_bib_to_file(df: pd.DataFrame, bib_file: str, is_aas: bool) -> None:
+    """Qurey bib and export file.
+
+    Args:
+        df (DataFrame): bib data
+        bib_file (str): bib file path
+        is_aas (bool): whether is aas format
+    """
     bib_str = adsapi.export_citation(list(df.key.values), "bibtex")
+    assert bib_str is not None
     aas_journal_dict = read_aas_journal_dict()
     with open(bib_file, "w") as f:
         for line in bib_str:
@@ -492,13 +544,12 @@ def query_bib_to_file(df, bib_file, is_aas):
                     split[1] = aas_journal_dict[split[1]]
                     line = split[0] + "{" + split[1] + "}" + split[2]
                 else:
-                    logging.warning(
-                        "{0} is not found in the AAS journal TeX!".format(split[1])
-                    )
+                    logging.warning("{0} is not found in the AAS journal TeX!".format(split[1]))
             f.write(line + "\n")
 
 
-def read_aas_journal_dict():
+def read_aas_journal_dict() -> dict:
+    """Read AAS journel shortname dictionary."""
     with open(Path(os.environ["pub"], "aas_journal.cls"), "r") as f:
         aas_journal_dict = dict()
         for line in f:
@@ -512,9 +563,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-f", "--filename", type=str, help="filename of main tex file")
     parser.add_argument("-d", "--doi", help="keep doi", action="store_true")
-    parser.add_argument(
-        "-r", "--replace", help="replace original file", action="store_true"
-    )
+    parser.add_argument("-r", "--replace", help="replace original file", action="store_true")
     parser.add_argument("-b", "--bib", help="use bib file", action="store_true")
     parser.add_argument("-a", "--aas", help="not in aastex env", action="store_false")
     args = parser.parse_args()
@@ -529,7 +578,6 @@ if __name__ == "__main__":
     ch.setFormatter(formatter)
     logger.addHandler(ch)
 
-    tex_files = find_all_tex_files()
     main_file = get_main_tex_file(filename)
     check_main_file_exist(main_file)
 
@@ -552,4 +600,5 @@ if __name__ == "__main__":
             replace_file(main_file)
     else:
         bib_file = locate_bib(content_dict, main_file)
-        query_bib_to_file(df, bib_file, args.aas)
+        if bib_file is not None:
+            query_bib_to_file(df, bib_file, args.aas)
