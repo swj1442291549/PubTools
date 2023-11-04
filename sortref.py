@@ -363,14 +363,20 @@ def is_key(key: str) -> bool:
     key = key.strip()
     if len(key) <= 5 or len(key) > 25:
         return False
-    if key[-4:].isdigit() and not key[-5].isdigit():
-        return True
     if len(key) != 19:
         return False
     if not key[:4].isdigit():
         return False
     if not key[-1].isupper():
         return False
+    if key.startswith("fig:"):
+        return False
+    if key.startswith("sec:"):
+        return False
+    if key.startswith("tbl:"):
+        return False
+    if key[-4:].isdigit() and not key[-5].isdigit():
+        return True
     return True
 
 
