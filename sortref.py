@@ -87,7 +87,9 @@ def extract_info(bib_item: str) -> dict:
     """
     info = dict()
     info["cite"] = bib_item.split("\\bibitem[")[1].split("]")[0]
-    info["key"] = bib_item.split("\\bibitem[")[1].split("]")[1].split("{")[1].split("}")[0]
+    info["key"] = (
+        bib_item.split("\\bibitem[")[1].split("]")[1].split("{")[1].split("}")[0]
+    )
     bib = (
         bib_item.split("\\bibitem[")[1]
         .split("]")[1][bib_item.split("\\bibitem[")[1].split("]")[1].find("}") + 1 :]
@@ -100,7 +102,7 @@ def extract_info(bib_item: str) -> dict:
     item = pd.Series(info)
     info["year"] = item.key[:4]
     bib = item.bib[: item.bib.find(info["year"])]
-    if "et al." not in item.cite and "\&" not in item.cite:
+    if "et al." not in item.cite and "\\&" not in item.cite:
         f = item.cite.split("(")[0].strip()
         info["au1_f"] = f
         info["au1_l"] = bib[bib.find(f) + len(f) + 1 :].split(".")[0].strip()
@@ -109,13 +111,13 @@ def extract_info(bib_item: str) -> dict:
         info["au3_f"] = ""
         info["au3_l"] = ""
         info["num"] = 1
-    elif "\&" in item.cite and "et al." not in item.cite:
-        f1 = item.cite.split("\&")[0].strip()
+    elif "\\&" in item.cite and "et al." not in item.cite:
+        f1 = item.cite.split("\\&")[0].strip()
         if f1[-1] == ",":
             f1 = f1[:-1]
         info["au1_f"] = f1
         info["au1_l"] = bib[bib.find(f1) + len(f1) + 1 :].split(".")[0].strip()
-        f2 = item.cite.split("\&")[1].split("(")[0].strip()
+        f2 = item.cite.split("\\&")[1].split("(")[0].strip()
         l2 = bib[bib.find(f1) + len(f1) + 1 :]
         info["au2_f"] = f2
         info["au2_l"] = l2[l2.find(f2) + len(f2) + 1 :].split(".")[0].strip()
@@ -180,7 +182,9 @@ def read_content_dict(content_dict: dict, filename):
                 after = True
             if "\\import" in line:
                 line_split = re.split("{|}", line)
-                import_filename = Path(line_split[1], "{0}.tex".format(line_split[3])).absolute()
+                import_filename = Path(
+                    line_split[1], "{0}.tex".format(line_split[3])
+                ).absolute()
                 read_content_dict(content_dict, str(import_filename))
             if "\\include{" in line:
                 line_split = re.split("{|}", line)
@@ -319,7 +323,7 @@ def find_missing(df: pd.DataFrame, line_list: list[str]) -> None:
     """
     content_join = "".join([line.strip() for line in line_list])
     keys = list()
-    for item in re.findall("(?<=\{)[^\{\}]*(?=\})", content_join):
+    for item in re.findall(r"(?<=\{)[^\{\}]*(?=\})", content_join):
         if len(item) > 19:
             item_split = item.split(",")
             for i in range(len(item_split)):
@@ -380,7 +384,9 @@ def is_key(key: str) -> bool:
     return True
 
 
-def write_tex(df: pd.DataFrame, content_dict: dict, main_file: Path, is_aas: bool) -> None:
+def write_tex(
+    df: pd.DataFrame, content_dict: dict, main_file: Path, is_aas: bool
+) -> None:
     """Write sorted tex to new file.
 
     Add suffix '_o' to the output filename
@@ -421,7 +427,9 @@ def change_two_author_cite(df: pd.DataFrame) -> None:
     df_sel = df[df.num == 2]
     for i in range(len(df_sel)):
         item = df_sel.iloc[i]
-        df.loc[item.name, "cite"] = "{0} \& {1}({2})".format(item.au1_f, item.au2_f, item.year)
+        df.loc[item.name, "cite"] = "{0} \\& {1}({2})".format(
+            item.au1_f, item.au2_f, item.year
+        )
 
 
 def check_arxiv(df: pd.DataFrame) -> None:
@@ -436,7 +444,9 @@ def check_arxiv(df: pd.DataFrame) -> None:
             arxiv_list.append(df.iloc[i]["key"])
     if len(arxiv_list) > 0:
         logging.warning(
-            "{0} arXiv citations in bib: {1}".format(len(arxiv_list), " ".join(arxiv_list))
+            "{0} arXiv citations in bib: {1}".format(
+                len(arxiv_list), " ".join(arxiv_list)
+            )
         )
 
 
@@ -550,7 +560,9 @@ def query_bib_to_file(df: pd.DataFrame, bib_file: str, is_aas: bool) -> None:
                     split[1] = aas_journal_dict[split[1]]
                     line = split[0] + "{" + split[1] + "}" + split[2]
                 else:
-                    logging.warning("{0} is not found in the AAS journal TeX!".format(split[1]))
+                    logging.warning(
+                        "{0} is not found in the AAS journal TeX!".format(split[1])
+                    )
             f.write(line + "\n")
 
 
@@ -569,14 +581,16 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-f", "--filename", type=str, help="filename of main tex file")
     parser.add_argument("-d", "--doi", help="keep doi", action="store_true")
-    parser.add_argument("-r", "--replace", help="replace original file", action="store_true")
+    parser.add_argument(
+        "-r", "--replace", help="replace original file", action="store_true"
+    )
     parser.add_argument("-b", "--bib", help="use bib file", action="store_true")
     parser.add_argument("-a", "--aas", help="not in aastex env", action="store_false")
     args = parser.parse_args()
     filename = args.filename
 
     logger = logging.getLogger()
-    logger.setLevel(logging.DEBUG)
+    logger.setLevel(logging.INFO)
 
     ch = logging.StreamHandler()
     ch.setLevel(logging.INFO)
