@@ -1,12 +1,17 @@
+import argparse
 import glob
 import hashlib
-import argparse
-
-from shutil import copyfile, rmtree
+import os
 from pathlib import Path
+from shutil import copyfile
 
 
-def cal_md5(filename):
+def cal_md5(filename: str | Path):
+    """Calculate md5. of a filename.
+
+    Args:
+        filename (str | Path): filename
+    """
     hasher = hashlib.md5()
     with open(filename, "rb") as f:
         buf = f.read()
@@ -42,4 +47,4 @@ if __name__ == "__main__":
     else:
         for pdf_filename in glob.glob(".figure/*.pdf"):
             copyfile(pdf_filename, Path(Path.cwd(), Path(pdf_filename).name))
-        rmtree(".figure")
+        os.removedirs(".figure")

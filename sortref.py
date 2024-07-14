@@ -11,6 +11,13 @@ import pandas as pd
 
 import adsapi
 
+logging.basicConfig(
+    level=logging.INFO,
+    format="[%(levelname)s] %(name)s: %(message)s",
+    datefmt="%H:%M:%S",
+)
+logger = logging.getLogger("sortref")
+
 
 def read_bib(filename: Path) -> pd.DataFrame:
     r"""Read bib from the tex file.
@@ -99,11 +106,10 @@ def extract_info(bib_item: str) -> dict:
         info["bib"] = bib[:-1]
     else:
         info["bib"] = bib
-    item = pd.Series(info)
-    info["year"] = item.key[:4]
-    bib = item.bib[: item.bib.find(info["year"])]
-    if "et al." not in item.cite and "\\&" not in item.cite:
-        f = item.cite.split("(")[0].strip()
+    info["year"] = info["key"][:4]
+    bib = info["bib"][: info["bib"].find(info["year"])]
+    if "et al." not in info["cite"] and "\\&" not in info["cite"]:
+        f = info["cite"].split("(")[0].strip()
         info["au1_f"] = f
         info["au1_l"] = bib[bib.find(f) + len(f) + 1 :].split(".")[0].strip()
         info["au2_f"] = ""
@@ -111,13 +117,13 @@ def extract_info(bib_item: str) -> dict:
         info["au3_f"] = ""
         info["au3_l"] = ""
         info["num"] = 1
-    elif "\\&" in item.cite and "et al." not in item.cite:
-        f1 = item.cite.split("\\&")[0].strip()
+    elif "\\&" in info["cite"] and "et al." not in info["cite"]:
+        f1 = info["cite"].split("\\&")[0].strip()
         if f1[-1] == ",":
             f1 = f1[:-1]
         info["au1_f"] = f1
         info["au1_l"] = bib[bib.find(f1) + len(f1) + 1 :].split(".")[0].strip()
-        f2 = item.cite.split("\\&")[1].split("(")[0].strip()
+        f2 = info["cite"].split("\\&")[1].split("(")[0].strip()
         l2 = bib[bib.find(f1) + len(f1) + 1 :]
         info["au2_f"] = f2
         info["au2_l"] = l2[l2.find(f2) + len(f2) + 1 :].split(".")[0].strip()
@@ -125,7 +131,7 @@ def extract_info(bib_item: str) -> dict:
         info["au3_l"] = ""
         info["num"] = 2
     else:
-        f1 = item.cite.split("et al.")[0].strip()
+        f1 = info["cite"].split("et al.")[0].strip()
         info["au1_f"] = f1
         info["au1_l"] = bib[bib.find(f1) + len(f1) + 1 :].split(".")[0].strip()
         l2 = bib[bib.find(f1) + len(f1) + 1 :]
@@ -214,7 +220,7 @@ def change_dup_cite(df: pd.DataFrame) -> None:
     """
     cite_dups = Counter(df[df.duplicated("cite")]["cite"].values).keys()
     for cite in cite_dups:
-        df_dup = df[df["cite"] == cite]
+        df_dup = df.loc[df["cite"] == cite]
         df_dup.sort_values(
             [
                 "au1_f_low",
@@ -228,7 +234,7 @@ def change_dup_cite(df: pd.DataFrame) -> None:
             ],
             inplace=True,
         )
-        logging.info(
+        logger.info(
             "{0} duplicate cites {1} are found: {2}".format(
                 len(df_dup), cite, ", ".join(df_dup.key)
             )
@@ -307,7 +313,7 @@ def remove_useless(df: pd.DataFrame, line_list: list) -> None:
     for i in range(len(df)):
         key = df.iloc[i].key
         if key not in content_join:
-            logging.info("No citation of {0} is found!".format(key))
+            logger.info("No citation of {0} is found!".format(key))
             useless.append(df.index[i])
     for index in useless:
         df.drop(index, inplace=True)
@@ -337,7 +343,7 @@ def find_missing(df: pd.DataFrame, line_list: list[str]) -> None:
     missing_key = list()
     for key in keys:
         if key.strip() not in df.key.values:
-            logging.info("{0} is not found in the bib!".format(key.strip()))
+            logger.info("{0} is not found in the bib!".format(key.strip()))
             missing_key.append(key.strip())
     missing_bibs = adsapi.export_citation(missing_key)
     if missing_bibs is not None:
@@ -349,7 +355,7 @@ def find_missing(df: pd.DataFrame, line_list: list[str]) -> None:
                 missing_key_found.append(info["key"])
             missing_key_not_found = list(set(missing_key) - set(missing_key_found))
             for key in missing_key_not_found:
-                logging.warning("{0} is not found in the ADS!".format(key))
+                logger.warning("{0} is not found in the ADS!".format(key))
         else:
             for bib_item in missing_bibs:
                 df.loc[len(df)] = extract_info(bib_item)  # type: ignore
@@ -425,11 +431,12 @@ def change_two_author_cite(df: pd.DataFrame) -> None:
         df (pd.DataFrame): bib data
     """
     df_sel = df[df.num == 2]
-    for i in range(len(df_sel)):
-        item = df_sel.iloc[i]
-        df.loc[item.name, "cite"] = "{0} \\& {1}({2})".format(
-            item.au1_f, item.au2_f, item.year
-        )
+    df_sel["cite"] = df_sel.apply(_format_citation, axis=1)
+    df.loc[df_sel.index, "cite"] = df_sel["cite"]
+
+
+def _format_citation(row):
+    return "{0} \\& {1}({2})".format(row["au1_f"], row["au2_f"], row["year"])
 
 
 def check_arxiv(df: pd.DataFrame) -> None:
@@ -443,7 +450,7 @@ def check_arxiv(df: pd.DataFrame) -> None:
         if "arXiv" in df.iloc[i]["key"]:
             arxiv_list.append(df.iloc[i]["key"])
     if len(arxiv_list) > 0:
-        logging.warning(
+        logger.warning(
             "{0} arXiv citations in bib: {1}".format(
                 len(arxiv_list), " ".join(arxiv_list)
             )
@@ -476,7 +483,7 @@ def get_main_tex_file(filename):
     """
     if not filename:
         if filename is None:
-            logging.info("No tex file is specified. Try to find one text file.")
+            logger.info("No tex file is specified. Try to find one text file.")
         tex_files = find_all_tex_files()
         if len(tex_files) == 1:
             filename = Path(tex_files[0])
@@ -484,13 +491,13 @@ def get_main_tex_file(filename):
             if str(Path(os.getcwd(), "ms.tex")) in tex_files:
                 filename = Path(os.getcwd(), "ms.tex")
             else:
-                logging.warning(
+                logger.warning(
                     "None or more than one tex files are found. Please specify one tex file!"
                 )
                 sys.exit()
     else:
         filename = Path(os.getcwd(), filename)
-    logging.info(f"Found {filename}")
+    logger.info(f"Found {filename}")
     return filename
 
 
@@ -501,7 +508,7 @@ def check_main_file_exist(main_file: Path) -> None:
         main_file (Path): main tex file
     """
     if not main_file.is_file():
-        logging.error("File not Found!")
+        logger.error("File not Found!")
         sys.exit()
 
 
@@ -560,7 +567,7 @@ def query_bib_to_file(df: pd.DataFrame, bib_file: str, is_aas: bool) -> None:
                     split[1] = aas_journal_dict[split[1]]
                     line = split[0] + "{" + split[1] + "}" + split[2]
                 else:
-                    logging.warning(
+                    logger.warning(
                         "{0} is not found in the AAS journal TeX!".format(split[1])
                     )
             f.write(line + "\n")
@@ -588,15 +595,6 @@ if __name__ == "__main__":
     parser.add_argument("-a", "--aas", help="not in aastex env", action="store_false")
     args = parser.parse_args()
     filename = args.filename
-
-    logger = logging.getLogger()
-    logger.setLevel(logging.INFO)
-
-    ch = logging.StreamHandler()
-    ch.setLevel(logging.INFO)
-    formatter = logging.Formatter("%(levelname)s - %(message)s")
-    ch.setFormatter(formatter)
-    logger.addHandler(ch)
 
     main_file = get_main_tex_file(filename)
     check_main_file_exist(main_file)
