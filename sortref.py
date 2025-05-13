@@ -107,6 +107,7 @@ def extract_info(bib_item: str) -> dict:
     else:
         info["bib"] = bib
     info["year"] = info["key"][:4]
+    assert info["year"].isdigit(), f"year cannot be extracted from {info['key']}"
     bib = info["bib"][: info["bib"].find(info["year"])]
     if "et al." not in info["cite"] and "\\&" not in info["cite"]:
         f = info["cite"].split("(")[0].strip()
@@ -218,7 +219,7 @@ def change_dup_cite(df: pd.DataFrame) -> None:
     Args:
         df (pd.DataFrame): data
     """
-    cite_dups = Counter(df[df.duplicated("cite")]["cite"].values).keys()
+    cite_dups = Counter(df.loc[df.duplicated("cite")]["cite"].values).keys()
     for cite in cite_dups:
         df_dup = df.loc[df["cite"] == cite]
         df_dup.sort_values(
